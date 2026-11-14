@@ -1,0 +1,10 @@
+flowchart LR
+    U[User preferences<br/>genre, mood, energy, acoustic] --> M[src/main.py<br/>CLI entry point]
+    CSV[(data/songs.csv<br/>18-song catalog)] --> L[load_songs]
+    M --> L
+    L --> S[Scoring engine<br/>genre > mood > energy closeness > acoustic match]
+    M --> S
+    S --> R[Rank and select top-K]
+    R --> E[Explanation generator<br/>plain-language reasons]
+    E --> O[Ranked recommendations<br/>printed to terminal]
+    T[tests/test_recommender.py<br/>pytest] -. verifies .-> S
