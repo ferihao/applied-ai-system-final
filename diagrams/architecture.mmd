@@ -1,35 +1,38 @@
 flowchart TD
     %% INPUT
-    U([User<br/>natural-language request]) --> G1[Input guardrail<br/>validate and sanitize]
-    G1 -- invalid --> ERR[Safe error message]
+    U([User<br/>natural-language request<br/>python -m src.main 'query']) --> G1[Input guardrail<br/>validate, sanitize, length check]
+    G1 -- invalid --> ERR([Safe error message])
+    G1 -- valid --> SAFE{Safety guardrail<br/>self-harm language?}
+    SAFE -- yes --> HELP([Support resources, no songs])
 
     %% RETRIEVAL
-    G1 -- valid --> RET[Retriever<br/>search catalog and genre/mood notes]
-    SONGS[(data/songs.csv)] --> RET
-    KB[(Genre and mood<br/>knowledge base)] --> RET
+    SAFE -- no --> RET[Retriever<br/>TF-IDF cosine over knowledge base]
+    KB[(data/knowledge_base.json<br/>genre, mood, situation entries)] --> RET
+    RET -- no hit / confidence below 0.15 --> LOW([Low-confidence message<br/>asks user to rephrase])
+    KB -. file missing .-> FB[Fallback<br/>default profile]
 
     %% GENERATION
-    RET -- retrieved context --> LLM[LLM recommender<br/>Claude picks, ranks, explains]
-    LLM -- API failure --> FB[Fallback<br/>rule-based scorer]
+    RET -- retrieved entries + similarity --> PROF[Profile builder<br/>weighted genre, mood, energy, acoustic]
+    PROF --> SC[Scoring engine<br/>genre > mood > energy closeness > acoustic]
+    SONGS[(data/songs.csv)] --> SC
     SONGS --> FB
-
-    %% CHECKING
-    LLM --> G2[Output guardrail<br/>songs must exist in catalog]
-    G2 -- hallucinated song --> FB
-    G2 -- verified --> SC[Scoring engine<br/>re-rank and cross-check]
+    SC --> G2[Output guardrail<br/>every song must exist in catalog]
+    G2 --> EXP[Explanation builder<br/>score reasons + cited sources]
     FB --> OUT
-    SC --> OUT([Ranked recommendations<br/>with explanations])
+    EXP --> OUT([Ranked recommendations<br/>+ confidence + sources])
 
     %% LOGGING
-    G1 -.-> LOG[(logs/<br/>structured run log)]
+    G1 -.-> LOG[(logs/vibefinder.log)]
     RET -.-> LOG
-    LLM -.-> LOG
-    G2 -.-> LOG
+    PROF -.-> LOG
+    SAFE -.-> LOG
 
     %% TESTING AND HUMAN REVIEW
-    EVAL[Evaluator<br/>fixed test queries, consistency and accuracy report] -. runs system .-> G1
-    EVAL --> REP[Eval report]
-    UT[pytest unit tests] -. verifies .-> SC
-    OUT --> H{{Human review<br/>user checks results and gives feedback}}
+    EVAL[Evaluator src/evaluate.py<br/>13 fixed queries x5 runs] -. exercises .-> G1
+    EVAL --> REP[docs/evaluation_results.md]
+    UT[pytest tests/] -. verifies .-> RET
+    UT -. verifies .-> G1
+    UT -. verifies .-> SC
+    OUT --> H{{Human review<br/>read results and eval report}}
     REP --> H
-    H -. adjust weights, prompts, knowledge base .-> KB
+    H -. edit entries, weights, thresholds .-> KB

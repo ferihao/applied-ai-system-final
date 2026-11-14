@@ -61,3 +61,42 @@ If I kept developing this, I'd want to: (1) add partial credit for related genre
 ## 9. Personal Reflection  
 
 My biggest learning moment was seeing how much a recommender's "personality" comes down to a handful of weight constants — moving genre's weight from 2.0 to 1.0 didn't just shuffle numbers, it changed which *kind* of match the system trusted more, and that single number quietly decides how much a listener's genre loyalty gets respected versus their mood or energy. Using an AI assistant was fastest for the repetitive, well-specified parts — writing the CSV loader, wiring up sorting, drafting plain-language explanations for the model card — but I had to slow down and double-check anything involving actual numbers: verifying the weight-shift experiment by rerunning it rather than trusting a plausible-sounding guess at the new rankings, and checking that the "conflicting signals" result (energy off by 0.6 but still ranked #1) was really coming from the math and not a bug. What surprised me most is how convincingly a system this simple can "feel" like it understands taste — a handful of if-statements and one absolute-value formula produced explanations that read like a thoughtful recommendation, which is a useful reminder that feeling personalized and actually understanding a user are two very different things. If I extended this, I'd want to test it against a real friend's stated preferences and see where their intuition and the scoring recipe disagree.
+
+---
+
+# Applied AI System (Capstone): Responsible AI Reflection
+
+This section covers the capstone extension: **VibeFinder RAG**, which adds free-text input, TF-IDF retrieval over a knowledge base, guardrails, logging and an evaluation harness. Sections 1–7 above describe the original VibeFinder 1.0.
+
+## Limitations and Biases
+
+- **Negation is ignored.** The retriever matches words, not meaning. "not sad please, something happy" returned sad songs because "sad" matched. "anything but jazz" returned jazz. A user who states what they *don't* want gets the opposite.
+- **Mixed requests collapse to one.** "reggae and metal mixed" returned only reggae, because the profile keeps a single top genre and mood.
+- **Inherited genre bias.** The scorer still weights genre (+2.0) above mood (+1.0), so the filter-bubble problem from Section 6 persists.
+- **Tiny, hand-written data.** The catalog has 18 songs and the knowledge base 37 entries, all written by me with AI help. The knowledge base reflects my assumptions about what music fits "studying" or "workout". Genres and moods outside Western pop-style categories are not represented, so some listeners are simply not served.
+- **Noisy retrieval.** Incidental words add weak matches ("night" pulled in a synthwave entry for a study query).
+- **Confidence is a proxy.** The score is the top TF-IDF similarity, which measures word overlap, not whether the recommendation is good. A 0.57 confidence does not mean 57% likely to please.
+
+## Potential Misuse and Prevention
+
+The system is low-stakes, but there are two realistic risks.
+1. **Vulnerable users.** People sometimes type distress into any text box. A playlist reply to "I want to kill myself" would be tone-deaf at best. I added a safety guardrail that detects self-harm language and returns support resources (988 in the US) with no songs. The keyword list is crude and English-only. A paraphrase such as "I don't want to be here anymore" would not match, and a real deployment would need a proper classifier and review.
+2. **Input abuse.** Very long or odd input could be used to stress or confuse the system. Input is capped at 300 characters and must contain words. Queries are logged to `logs/vibefinder.log`, which could hold personal text, so the log is git-ignored and should be rotated or anonymized in any real deployment.
+
+If this ever recommended real artists, there is also a fairness risk: popularity bias could starve small artists. The current fixed catalog avoids that, but it would need auditing at scale.
+
+## What Surprised Me While Testing Reliability
+
+- **A 100% pass rate was misleading.** All 13 planned evaluation cases passed and every run was deterministic, yet a few minutes of ad-hoc probing found the negation failure, the mixed-request collapse and the self-harm gap. The planned tests only covered what I'd already thought of.
+- **The safety gap was invisible until I tried it.** Before the guardrail, a self-harm query returned a calm "couldn't match that" message. That is technically safe, but it ignored the person.
+- **"Confident" and "correct" diverged.** "anything but jazz, I want to relax" scored 0.64 confidence, higher than most correct queries, while returning exactly what the user excluded.
+
+## Collaboration With AI
+
+I built this with Claude Code. It wrote most of the code, and I directed the scope and checked the results. Please treat the two examples below as the record of this session.
+
+**Suggestion I accepted:** The AI proposed a *guardrail-and-evaluation layer* around the retriever: an input validator, an output check that every song exists in the catalog, a low-confidence refusal and a repeated-run consistency test. I accepted it because it matched what the assignment asked me to prove, and it made the system testable. Its later probing also found the self-harm gap, which led to the safety guardrail.
+
+**Suggestion I changed/scoped down:** The AI's first plan was an LLM-based RAG: retrieve context, then have Claude generate and explain recommendations through the Anthropic API. I did not adopt that as written. It needs an API key, costs money per query, and gives non-deterministic output, which makes my reliability claims hard to verify and makes the project hard for an employer to reproduce. We changed it to a fully offline design: TF-IDF retrieval plus the original rule-based scorer. I gave up natural-language flexibility (see the negation limitation) and gained reproducibility, determinism and an auditable explanation trail.
+
+**Where AI was wrong or needed checking:** The first generated knowledge-base file had empty text for all ten situation entries because of a bug in its generating script. I caught it by checking the output, and it was fixed before anything depended on it.

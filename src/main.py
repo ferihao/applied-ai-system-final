@@ -9,6 +9,9 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
+import sys
+
+from src.rag import VibeFinder
 from src.recommender import load_songs, recommend_songs
 
 
@@ -39,7 +42,25 @@ def print_recommendations(songs, user_prefs, k=5) -> None:
         print()
 
 
+def run_query(query: str, k: int = 5) -> None:
+    """RAG mode: free-text request -> retrieved context -> recommendations."""
+    result = VibeFinder().recommend(query, k=k)
+    print(f"Query: {query!r}  |  status: {result['status']}  |  confidence: {result['confidence']}")
+    if result.get("message"):
+        print(result["message"])
+    if result.get("profile"):
+        print(f"Inferred profile: {result['profile']}")
+    for src in result.get("sources", []):
+        print(f"  retrieved: {src['title']} (similarity {src['similarity']})")
+    for rank, rec in enumerate(result["recommendations"], start=1):
+        print(f"{rank}. {rec['title']} by {rec['artist']} - Score: {rec['score']}")
+        print(f"   Because: {rec['explanation']}")
+
+
 def main() -> None:
+    if len(sys.argv) > 1:
+        run_query(" ".join(sys.argv[1:]))
+        return
     songs = load_songs("data/songs.csv")
     print(f"Loaded songs: {len(songs)}")
 

@@ -1,0 +1,459 @@
+[
+  {
+    "id": "genre-pop",
+    "title": "Genre: pop",
+    "text": "pop music catchy bright radio hits upbeat sing along",
+    "genres": [
+      "pop"
+    ],
+    "moods": [],
+    "energy": 0.8,
+    "acoustic": false
+  },
+  {
+    "id": "genre-lofi",
+    "title": "Genre: lofi",
+    "text": "lofi lo-fi beats mellow tape hiss background study music",
+    "genres": [
+      "lofi"
+    ],
+    "moods": [],
+    "energy": 0.4,
+    "acoustic": true
+  },
+  {
+    "id": "genre-rock",
+    "title": "Genre: rock",
+    "text": "rock guitars drums loud band riffs",
+    "genres": [
+      "rock"
+    ],
+    "moods": [],
+    "energy": 0.85,
+    "acoustic": false
+  },
+  {
+    "id": "genre-ambient",
+    "title": "Genre: ambient",
+    "text": "ambient atmospheric soundscape drifting spacious textures",
+    "genres": [
+      "ambient"
+    ],
+    "moods": [],
+    "energy": 0.25,
+    "acoustic": true
+  },
+  {
+    "id": "genre-jazz",
+    "title": "Genre: jazz",
+    "text": "jazz saxophone piano improvisation smooth swing club",
+    "genres": [
+      "jazz"
+    ],
+    "moods": [],
+    "energy": 0.4,
+    "acoustic": true
+  },
+  {
+    "id": "genre-synthwave",
+    "title": "Genre: synthwave",
+    "text": "synthwave retro eighties neon synths night drive",
+    "genres": [
+      "synthwave"
+    ],
+    "moods": [],
+    "energy": 0.7,
+    "acoustic": false
+  },
+  {
+    "id": "genre-indie pop",
+    "title": "Genre: indie pop",
+    "text": "indie pop quirky bedroom jangly sweet alternative",
+    "genres": [
+      "indie pop"
+    ],
+    "moods": [],
+    "energy": 0.65,
+    "acoustic": false
+  },
+  {
+    "id": "genre-classical",
+    "title": "Genre: classical",
+    "text": "classical orchestra symphony piano strings concert",
+    "genres": [
+      "classical"
+    ],
+    "moods": [],
+    "energy": 0.2,
+    "acoustic": true
+  },
+  {
+    "id": "genre-hip-hop",
+    "title": "Genre: hip-hop",
+    "text": "hip-hop rap beats bars flow urban",
+    "genres": [
+      "hip-hop"
+    ],
+    "moods": [],
+    "energy": 0.75,
+    "acoustic": false
+  },
+  {
+    "id": "genre-country",
+    "title": "Genre: country",
+    "text": "country twang storytelling acoustic guitar small town",
+    "genres": [
+      "country"
+    ],
+    "moods": [],
+    "energy": 0.5,
+    "acoustic": true
+  },
+  {
+    "id": "genre-metal",
+    "title": "Genre: metal",
+    "text": "metal heavy distorted aggressive shredding double bass",
+    "genres": [
+      "metal"
+    ],
+    "moods": [],
+    "energy": 0.95,
+    "acoustic": false
+  },
+  {
+    "id": "genre-folk",
+    "title": "Genre: folk",
+    "text": "folk acoustic storytelling fingerpicking campfire",
+    "genres": [
+      "folk"
+    ],
+    "moods": [],
+    "energy": 0.35,
+    "acoustic": true
+  },
+  {
+    "id": "genre-electronic",
+    "title": "Genre: electronic",
+    "text": "electronic edm club synths bass drop dance",
+    "genres": [
+      "electronic"
+    ],
+    "moods": [],
+    "energy": 0.85,
+    "acoustic": false
+  },
+  {
+    "id": "genre-reggae",
+    "title": "Genre: reggae",
+    "text": "reggae island offbeat laid back sunshine",
+    "genres": [
+      "reggae"
+    ],
+    "moods": [],
+    "energy": 0.5,
+    "acoustic": true
+  },
+  {
+    "id": "genre-blues",
+    "title": "Genre: blues",
+    "text": "blues soulful guitar twelve bar heartache",
+    "genres": [
+      "blues"
+    ],
+    "moods": [],
+    "energy": 0.4,
+    "acoustic": true
+  },
+  {
+    "id": "mood-happy",
+    "title": "Mood: happy",
+    "text": "happy joyful cheerful sunny good vibes smile",
+    "genres": [],
+    "moods": [
+      "happy"
+    ],
+    "energy": 0.8,
+    "acoustic": false
+  },
+  {
+    "id": "mood-chill",
+    "title": "Mood: chill",
+    "text": "chill calm laid back easy going mellow unwind",
+    "genres": [],
+    "moods": [
+      "chill"
+    ],
+    "energy": 0.35,
+    "acoustic": true
+  },
+  {
+    "id": "mood-intense",
+    "title": "Mood: intense",
+    "text": "intense powerful driving fierce adrenaline",
+    "genres": [],
+    "moods": [
+      "intense"
+    ],
+    "energy": 0.9,
+    "acoustic": false
+  },
+  {
+    "id": "mood-relaxed",
+    "title": "Mood: relaxed",
+    "text": "relaxed easy gentle slow relaxing",
+    "genres": [],
+    "moods": [
+      "relaxed"
+    ],
+    "energy": 0.4,
+    "acoustic": true
+  },
+  {
+    "id": "mood-moody",
+    "title": "Mood: moody",
+    "text": "moody dark brooding atmospheric nighttime",
+    "genres": [],
+    "moods": [
+      "moody"
+    ],
+    "energy": 0.6,
+    "acoustic": false
+  },
+  {
+    "id": "mood-focused",
+    "title": "Mood: focused",
+    "text": "focused concentration productive deep work flow",
+    "genres": [],
+    "moods": [
+      "focused"
+    ],
+    "energy": 0.4,
+    "acoustic": true
+  },
+  {
+    "id": "mood-peaceful",
+    "title": "Mood: peaceful",
+    "text": "peaceful serene quiet tranquil still",
+    "genres": [],
+    "moods": [
+      "peaceful"
+    ],
+    "energy": 0.2,
+    "acoustic": true
+  },
+  {
+    "id": "mood-energetic",
+    "title": "Mood: energetic",
+    "text": "energetic pumped lively hype high energy",
+    "genres": [],
+    "moods": [
+      "energetic"
+    ],
+    "energy": 0.85,
+    "acoustic": false
+  },
+  {
+    "id": "mood-nostalgic",
+    "title": "Mood: nostalgic",
+    "text": "nostalgic remember throwback memories old days",
+    "genres": [],
+    "moods": [
+      "nostalgic"
+    ],
+    "energy": 0.5,
+    "acoustic": true
+  },
+  {
+    "id": "mood-angry",
+    "title": "Mood: angry",
+    "text": "angry rage furious aggressive vent",
+    "genres": [],
+    "moods": [
+      "angry"
+    ],
+    "energy": 0.95,
+    "acoustic": false
+  },
+  {
+    "id": "mood-melancholy",
+    "title": "Mood: melancholy",
+    "text": "melancholy wistful bittersweet reflective autumn",
+    "genres": [],
+    "moods": [
+      "melancholy"
+    ],
+    "energy": 0.35,
+    "acoustic": true
+  },
+  {
+    "id": "mood-sad",
+    "title": "Mood: sad",
+    "text": "sad crying tears lonely heartbroken down",
+    "genres": [],
+    "moods": [
+      "sad"
+    ],
+    "energy": 0.35,
+    "acoustic": true
+  },
+  {
+    "id": "activity-studying",
+    "title": "Situation: studying",
+    "text": "study studying homework exam reading library quiet late night",
+    "genres": [
+      "lofi",
+      "classical",
+      "ambient"
+    ],
+    "moods": [
+      "focused",
+      "chill"
+    ],
+    "energy": 0.3,
+    "acoustic": true
+  },
+  {
+    "id": "activity-coding",
+    "title": "Situation: coding",
+    "text": "coding programming debugging work focus concentrate deep work",
+    "genres": [
+      "lofi",
+      "synthwave",
+      "ambient"
+    ],
+    "moods": [
+      "focused",
+      "chill"
+    ],
+    "energy": 0.4,
+    "acoustic": false
+  },
+  {
+    "id": "activity-workout",
+    "title": "Situation: workout",
+    "text": "workout gym running lifting cardio exercise training pump",
+    "genres": [
+      "rock",
+      "electronic",
+      "hip-hop",
+      "metal"
+    ],
+    "moods": [
+      "intense",
+      "energetic"
+    ],
+    "energy": 0.92,
+    "acoustic": false
+  },
+  {
+    "id": "activity-party",
+    "title": "Situation: party",
+    "text": "party dance friends celebrate club weekend",
+    "genres": [
+      "pop",
+      "electronic",
+      "hip-hop"
+    ],
+    "moods": [
+      "happy",
+      "energetic"
+    ],
+    "energy": 0.88,
+    "acoustic": false
+  },
+  {
+    "id": "activity-sleep",
+    "title": "Situation: sleep",
+    "text": "sleep bedtime falling asleep nap rest wind down insomnia",
+    "genres": [
+      "ambient",
+      "classical"
+    ],
+    "moods": [
+      "peaceful",
+      "relaxed"
+    ],
+    "energy": 0.1,
+    "acoustic": true
+  },
+  {
+    "id": "activity-roadtrip",
+    "title": "Situation: roadtrip",
+    "text": "road trip driving highway car windows down travel",
+    "genres": [
+      "rock",
+      "synthwave",
+      "country"
+    ],
+    "moods": [
+      "happy",
+      "energetic"
+    ],
+    "energy": 0.75,
+    "acoustic": false
+  },
+  {
+    "id": "activity-rainy",
+    "title": "Situation: rainy",
+    "text": "rainy day rain cozy coffee window gloomy",
+    "genres": [
+      "lofi",
+      "jazz",
+      "folk"
+    ],
+    "moods": [
+      "chill",
+      "melancholy",
+      "relaxed"
+    ],
+    "energy": 0.3,
+    "acoustic": true
+  },
+  {
+    "id": "activity-heartbreak",
+    "title": "Situation: heartbreak",
+    "text": "heartbreak breakup crying missing someone lonely",
+    "genres": [
+      "blues",
+      "folk"
+    ],
+    "moods": [
+      "sad",
+      "melancholy"
+    ],
+    "energy": 0.3,
+    "acoustic": true
+  },
+  {
+    "id": "activity-morning",
+    "title": "Situation: morning",
+    "text": "morning wake up sunrise breakfast fresh start",
+    "genres": [
+      "pop",
+      "indie pop",
+      "reggae"
+    ],
+    "moods": [
+      "happy",
+      "relaxed"
+    ],
+    "energy": 0.6,
+    "acoustic": false
+  },
+  {
+    "id": "activity-cooking",
+    "title": "Situation: cooking",
+    "text": "cooking dinner kitchen hosting relaxed evening",
+    "genres": [
+      "jazz",
+      "reggae",
+      "folk"
+    ],
+    "moods": [
+      "relaxed",
+      "happy"
+    ],
+    "energy": 0.5,
+    "acoustic": true
+  }
+]
