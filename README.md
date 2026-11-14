@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-**VibeFinder 1.0** is a small, CLI-first, content-based music recommender. It loads an 18-song catalog from `data/songs.csv`, scores every song against a user's stated genre/mood/energy/acoustic preferences using a hand-weighted point system (genre > mood > energy closeness > acoustic match), and prints a ranked top-K list with a plain-language explanation for each pick. See [model_card.md](model_card.md) for the full writeup of how it works, what it's good at, and where it's biased.
+**VibeFinder 1.0** is a small, CLI-first, content-based music recommender. It loads an 18-song catalog from `data/songs.csv`, scores every song against a user's stated genre/mood/energy/acoustic preferences using a hand-weighted point system (genre > mood > energy closeness > acoustic match), and prints a ranked top-K list with a plain-language explanation for each pick. See [model_card.md](docs/model_card.md) for the full writeup of how it works, what it's good at, and where it's biased.
 
 ---
 
@@ -288,7 +288,7 @@ You will go deeper on this in your model card.
 
 ## Reflection
 
-[**Model Card**](model_card.md) — full details, including a personal reflection on the engineering process, live there.
+[**Model Card**](docs/model_card.md) — full details, including a personal reflection on the engineering process, live there.
 
 Building this made concrete something that's easy to say abstractly: a recommender turns a *prediction problem* ("will this user like this song?") into an *arithmetic problem* (assign numeric weights to a handful of comparisons and add them up). There's no understanding of music happening anywhere in this system — just string equality checks and one absolute-value formula — yet the output reads as a confident, personalized suggestion with a plausible-sounding reason attached. That gap between how the system actually works and how its output *feels* is, I think, the core thing worth understanding about real recommenders too.
 

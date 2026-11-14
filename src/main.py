@@ -13,7 +13,7 @@ from src.recommender import load_songs, recommend_songs
 
 
 # Evaluation profiles: 3 "normal" tastes + 3 adversarial/edge cases
-# (see model_card.md Evaluation section for discussion of each)
+# (see docs/model_card.md Evaluation section for discussion of each)
 PROFILES = {
     "High-Energy Pop": {"genre": "pop", "mood": "happy", "energy": 0.9, "likes_acoustic": False},
     "Chill Lofi": {"genre": "lofi", "mood": "chill", "energy": 0.3, "likes_acoustic": True},
