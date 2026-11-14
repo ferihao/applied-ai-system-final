@@ -52,3 +52,25 @@ def test_fallback_when_knowledge_base_missing(tmp_path):
 def test_crisis_query_returns_support_not_songs():
     r = VibeFinder().recommend("I want to kill myself")
     assert r["status"] == "safety" and r["recommendations"] == [] and "988" in r["message"]
+
+
+def test_negation_is_respected():
+    from src.query_parser import parse_query
+    assert parse_query("not sad please, something happy") == ("please something happy", "sad")
+    assert parse_query("anything but jazz, I want to relax")[1] == "jazz"
+    assert parse_query("chill but energetic")[1] == ""
+    vf = VibeFinder()
+    top = vf.recommend("anything but jazz, I want to relax", k=5)["recommendations"]
+    assert all(s["title"] != "Coffee Shop Stories" for s in top)  # the jazz song
+
+
+def test_multi_genre_request_returns_both_genres():
+    vf = VibeFinder()
+    titles = {r["title"] for r in vf.recommend("reggae and metal mixed", k=3)["recommendations"]}
+    genres = {s["genre"] for s in vf.songs if s["title"] in titles}
+    assert {"reggae", "metal"} <= genres
+
+
+def test_stemming_matches_word_forms():
+    from src.retriever import tokenize
+    assert tokenize("relaxing") == tokenize("relaxed")

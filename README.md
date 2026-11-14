@@ -13,7 +13,7 @@ VibeFinder 1.0 made the user translate their taste into rigid fields, which is a
 1. **RAG:** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation.
 2. **Guardrails:** Input validation, a self-harm safety check, a low-confidence refusal, output verification against the catalog, and a fallback when the knowledge base is unavailable.
 3. **Logging:** Every query, retrieved source, confidence and inferred profile goes to `logs/vibefinder.log`.
-4. **Reliability system:** Confidence scoring, 11 pytest tests, and an evaluation harness that runs fixed queries five times each.
+4. **Reliability system:** Confidence scoring, 14 pytest tests, and an evaluation harness that runs fixed queries five times each.
 
 ## Architecture Overview
 
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 python -m src.main "chill music for studying late at night"   # RAG mode
 python -m src.main                                             # original 6-profile demo
-python -m pytest -q                                            # 11 tests
+python -m pytest -q                                            # 14 tests
 python -m src.evaluate                                         # regenerates docs/evaluation_results.md
 ```
 
@@ -80,7 +80,7 @@ I couldn't match that to a genre, mood, or situation I know. Try e.g. 'chill mus
 
 ## Design Decisions and Trade-offs
 
-- **Offline TF-IDF retrieval instead of an LLM API.** Anyone can clone and run it with no keys or cost, and the results are deterministic and testable (the harness checks identical output across 5 runs). The trade-off is that it only matches *words*: no semantic understanding, no negation, no synonyms I didn't write into the knowledge base.
+- **Offline TF-IDF retrieval instead of an LLM API.** Anyone can clone and run it with no keys or cost, and the results are deterministic and testable (the harness checks identical output across 5 runs). The trade-off is that it only matches *words*: no semantic understanding and no synonyms I didn't write into the knowledge base. Negation is handled by a small rule-based parser, which covers common phrasings only.
 - **Retrieval builds the profile; the original scorer ranks.** I kept VibeFinder 1.0's explainable scoring rather than replacing it, so retrieval genuinely changes behavior while every score stays auditable. The trade-off is that it inherits 1.0's known genre-over-mood bias.
 - **Refuse over guess.** Below the 0.15 confidence threshold the system declines. This costs some coverage but avoids confident nonsense.
 - **Safety check before retrieval.** A self-harm query should never get a playlist, so this check runs before everything else. A keyword list is crude, but it fails safe.
@@ -90,14 +90,18 @@ I couldn't match that to a genre, mood, or situation I know. Try e.g. 'chill mus
 
 Full table: [docs/evaluation_results.md](docs/evaluation_results.md).
 
-**Results: 11/11 pytest tests pass. 13/13 evaluation checks pass. All 13 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.47.** The checks cover 7 in-scope queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
+**Results: 14/14 pytest tests pass. 17/17 evaluation checks pass. All 17 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
 
 **What worked:** Guardrails handled every bad input without a crash. Retrieval put the right entries first for situation words like "workout", "study" and "sleep".
 
-**What didn't:** The evaluation harness only checks cases I thought of, so a 100% pass rate shows my tests are consistent, not that the system is right everywhere. Manual probing found real failures that I did *not* fix:
-- **Negation is ignored.** "not sad please, something happy" returned sad songs, and "anything but jazz" returned jazz.
-- **Mixed requests collapse.** "reggae and metal mixed" returned only reggae.
-- **Incidental words add noise.** The word "night" pulled in a synthwave entry for a study query.
+**What didn't (at first):** The first version passed all 13 planned checks, yet manual probing found real failures:
+- **Negation was ignored.** "not sad please, something happy" returned sad songs, and "anything but jazz" returned jazz.
+- **Mixed requests collapsed.** "reggae and metal mixed" returned only reggae.
+- **Word forms didn't match.** "I want to relax" found nothing because the knowledge base says "relaxed".
+
+I fixed all three: a query parser (`src/query_parser.py`) separates what the user wants from what they want to avoid, the profile now keeps several genres and moods, and a light stemmer matches word forms. Each fix has pytest tests and evaluation cases that failed before the change.
+
+**Still open:** Incidental words add noise (the word "night" pulled in a synthwave entry for a study query). Negation is rule-based, so unusual phrasing like "I'm sick of jazz" is not caught. Matching is still word-based, with no semantic understanding.
 
 **What I learned:** A passing test suite is a floor, not proof. Adversarial probing found more real problems in 5 minutes than the 13 planned cases did, and the safety gap (self-harm wording originally got a generic "couldn't match" reply) only showed up that way.
 
@@ -108,7 +112,7 @@ The most useful lesson was how much of "AI quality" is plumbing around the model
 ## Project Structure
 
 ```
-src/        recommender.py (scoring), retriever.py, guardrails.py, rag.py, evaluate.py, main.py
+src/        recommender.py (scoring), query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
 tests/      test_recommender.py, test_rag.py
 data/       songs.csv, knowledge_base.json
 diagrams/   architecture.mmd

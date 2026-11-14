@@ -70,8 +70,8 @@ This section covers the capstone extension: **VibeFinder RAG**, which adds free-
 
 ## Limitations and Biases
 
-- **Negation is ignored.** The retriever matches words, not meaning. "not sad please, something happy" returned sad songs because "sad" matched. "anything but jazz" returned jazz. A user who states what they *don't* want gets the opposite.
-- **Mixed requests collapse to one.** "reggae and metal mixed" returned only reggae, because the profile keeps a single top genre and mood.
+- **Negation is rule-based and partial.** The first version ignored negation entirely ("not sad" returned sad songs). A small parser now handles common phrasings ("not X", "no X", "anything but X", "without X"), but unusual wording such as "I'm sick of jazz" is still missed.
+- **Mixed requests are capped.** The profile keeps at most 3 genres and moods, and averages energy across them, so "reggae and metal mixed" uses one blended energy target and fits neither genre perfectly.
 - **Inherited genre bias.** The scorer still weights genre (+2.0) above mood (+1.0), so the filter-bubble problem from Section 6 persists.
 - **Tiny, hand-written data.** The catalog has 18 songs and the knowledge base 37 entries, all written by me with AI help. The knowledge base reflects my assumptions about what music fits "studying" or "workout". Genres and moods outside Western pop-style categories are not represented, so some listeners are simply not served.
 - **Noisy retrieval.** Incidental words add weak matches ("night" pulled in a synthwave entry for a study query).
@@ -87,9 +87,9 @@ If this ever recommended real artists, there is also a fairness risk: popularity
 
 ## What Surprised Me While Testing Reliability
 
-- **A 100% pass rate was misleading.** All 13 planned evaluation cases passed and every run was deterministic, yet a few minutes of ad-hoc probing found the negation failure, the mixed-request collapse and the self-harm gap. The planned tests only covered what I'd already thought of.
+- **A 100% pass rate was misleading.** All 13 planned evaluation cases passed and every run was deterministic, yet a few minutes of ad-hoc probing found the negation failure, the mixed-request collapse, a word-form mismatch ('relax' vs 'relaxed') and the self-harm gap. I fixed the first three and added tests for each, so the evaluation now has 17 checks. The planned tests only covered what I'd already thought of.
 - **The safety gap was invisible until I tried it.** Before the guardrail, a self-harm query returned a calm "couldn't match that" message. That is technically safe, but it ignored the person.
-- **"Confident" and "correct" diverged.** "anything but jazz, I want to relax" scored 0.64 confidence, higher than most correct queries, while returning exactly what the user excluded.
+- **"Confident" and "correct" diverged.** "anything but jazz, I want to relax" scored 0.64 confidence, higher than most correct queries, while returning exactly what the user excluded (before the negation fix).
 
 ## Collaboration With AI
 

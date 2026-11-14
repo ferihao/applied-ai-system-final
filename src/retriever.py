@@ -10,8 +10,16 @@ STOPWORDS = {"a", "an", "the", "for", "to", "of", "and", "or", "i", "me", "my", 
              "with", "in", "on", "is", "it", "that", "this", "when", "while", "of"}
 
 
+def stem(token: str) -> str:
+    """Very light suffix stripping so 'relax', 'relaxed' and 'relaxing' match."""
+    for suffix in ("ing", "ed", "es", "s", "e"):
+        if len(token) > len(suffix) + 3 and token.endswith(suffix):
+            return token[: -len(suffix)]
+    return token
+
+
 def tokenize(text: str) -> List[str]:
-    return [t for t in re.findall(r"[a-z0-9\-]+", text.lower()) if t not in STOPWORDS]
+    return [stem(t) for t in re.findall(r"[a-z0-9\-]+", text.lower()) if t not in STOPWORDS]
 
 
 def load_knowledge_base(path: str) -> List[Dict]:

@@ -6,13 +6,14 @@ flowchart TD
     SAFE -- yes --> HELP([Support resources, no songs])
 
     %% RETRIEVAL
-    SAFE -- no --> RET[Retriever<br/>TF-IDF cosine over knowledge base]
+    SAFE -- no --> QP[Query parser<br/>split wanted vs avoided text]
+    QP --> RET[Retriever<br/>stemmed TF-IDF cosine over knowledge base]
     KB[(data/knowledge_base.json<br/>genre, mood, situation entries)] --> RET
     RET -- no hit / confidence below 0.15 --> LOW([Low-confidence message<br/>asks user to rephrase])
     KB -. file missing .-> FB[Fallback<br/>default profile]
 
     %% GENERATION
-    RET -- retrieved entries + similarity --> PROF[Profile builder<br/>weighted genre, mood, energy, acoustic]
+    RET -- retrieved entries + similarity --> PROF[Profile builder<br/>weighted genres, moods, energy, acoustic<br/>minus avoided genres and moods]
     PROF --> SC[Scoring engine<br/>genre > mood > energy closeness > acoustic]
     SONGS[(data/songs.csv)] --> SC
     SONGS --> FB
@@ -28,7 +29,7 @@ flowchart TD
     SAFE -.-> LOG
 
     %% TESTING AND HUMAN REVIEW
-    EVAL[Evaluator src/evaluate.py<br/>13 fixed queries x5 runs] -. exercises .-> G1
+    EVAL[Evaluator src/evaluate.py<br/>17 fixed queries x5 runs] -. exercises .-> G1
     EVAL --> REP[docs/evaluation_results.md]
     UT[pytest tests/] -. verifies .-> RET
     UT -. verifies .-> G1

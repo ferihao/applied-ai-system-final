@@ -24,9 +24,19 @@ CASES = [
 ]
 REPEATS = 5
 
+# Negation: none of the top-3 songs may have a forbidden genre or mood.
+NEGATION_CASES = [
+    ("not sad please, something happy", {"sad"}),
+    ("anything but jazz, I want to relax", {"jazz"}),
+    ("no rock, high energy workout", {"rock"}),
+]
+# Multi-genre: the top-3 must include a song from EACH listed genre.
+MULTI_CASES = [("reggae and metal mixed", {"reggae", "metal"})]
+
 
 def evaluate():
     vf = VibeFinder()
+    vf.songs_by_title = lambda t: next(x for x in vf.songs if x['title'] == t)
     rows, confidences = [], []
     for query, expected, accept in CASES:
         runs = [vf.recommend(query, k=3) for _ in range(REPEATS)]
@@ -40,6 +50,18 @@ def evaluate():
             detail = f"top={top['title']} ({top['genre']}/{top['mood']})"
             confidences.append(first["confidence"])
         rows.append((query[:40] or "(empty)", detail, first["confidence"], consistent, passed))
+    for query, forbidden in NEGATION_CASES:
+        runs = [vf.recommend(query, k=3) for _ in range(REPEATS)]
+        tops = [vf.songs_by_title(r["title"]) for r in runs[0]["recommendations"]]
+        bad = [t["title"] for t in tops if t["genre"] in forbidden or t["mood"] in forbidden]
+        same = all([r["title"] for r in x["recommendations"]] == [r["title"] for r in runs[0]["recommendations"]] for x in runs)
+        rows.append((query, "avoids " + "/".join(sorted(forbidden)) if not bad else f"leaked: {bad}",
+                     runs[0]["confidence"], same, runs[0]["status"] == "ok" and not bad))
+    for query, genres in MULTI_CASES:
+        runs = [vf.recommend(query, k=3) for _ in range(REPEATS)]
+        got = {vf.songs_by_title(r["title"])["genre"] for r in runs[0]["recommendations"]}
+        same = all([r["title"] for r in x["recommendations"]] == [r["title"] for r in runs[0]["recommendations"]] for x in runs)
+        rows.append((query, f"top-3 genres: {sorted(got & genres)}", runs[0]["confidence"], same, genres <= got))
     return rows, confidences
 
 
