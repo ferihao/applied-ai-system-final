@@ -1,50 +1,32 @@
 # AI Interactions Log
 
-> **Stretch features only.** Only fill in the sections that apply to stretch features you attempted. If you did not attempt a stretch feature, leave its section blank or delete it. This file is not required for the core project.
+This log records where AI assistance was used in this assignment, part by part. The tool was Claude Code, working inside this repository, and I directed it with prompts. Parts of the assignment that did not need AI are listed too.
 
----
+## Capstone: Where AI Was Used, by Assignment Part
 
-## Agentic Workflow (SF8)
+| Assignment part | AI role | What I did |
+|---|---|---|
+| **Step 0: repo setup** (copy of the Module 3 repo, folder structure, venv) | Claude Code ran the git commands: cloned the original history, pushed to the new repo, created `docs/`, `assets/`, `diagrams/`, and set up `.venv`. | I created the empty GitHub repo, chose the Module 3 music recommender as the project to extend, and confirmed the pushed result. |
+| **Architecture diagram** (`diagrams/architecture.mmd`) | Claude Code drafted and later updated the Mermaid source to match the code. | I reviewed that it matched my design. |
+| **Core AI feature: retrieval-augmented recommendation** (`src/retriever.py`, `src/rag.py`, `data/knowledge_base.json`) | Claude Code proposed the design and wrote the code and the knowledge base. | I picked the direction (extend my own recommender, keep its scoring) and chose the offline design that needs no API key. |
+| **Guardrails, logging, reliability testing** (`src/guardrails.py`, `tests/`, `src/evaluate.py`) | Claude Code wrote the guardrails, tests and evaluation harness, then probed the system with adversarial queries. | I decided which failures to fix. The probing found three real failures (ignored negation, mixed-genre requests, word-form mismatches) and a safety gap for self-harm wording. |
+| **Stretch features** (second data source, agent loop with traces, evaluation harness) | Claude Code implemented them. | I chose which stretch features to attempt and which to skip, and asked for the negation and multi-genre fixes. |
+| **Documentation** (README, model card, portfolio entry, presentation outline) | Claude Code drafted them from the real outputs and test results. | I review and edit them, especially my own reflection in `docs/model_card.md`, so the wording is mine. |
 
-> Document your experience using an AI agent (e.g., Cursor Agent, Claude, Copilot) to make multi-step changes autonomously.
+**Parts that did not use AI:** choosing which prior project to extend, creating the GitHub repository, and the final review and presentation of the work.
 
-**What task did you give the agent?**
+### Where the AI got it wrong, and how that was caught
+- The first knowledge-base file had empty text for ten entries, because of a bug in the script that generated it. Checking the generated file found it before anything depended on it.
+- The agent's first recovery tool (dropping unknown words) changed nothing, because the retriever already ignored them. Testing real queries showed this, and it was replaced with spelling correction.
+- The first song-retrieval threshold pulled an unrelated song into a plain study query. Re-running the earlier queries after the change caught it, and the threshold was tightened.
+- A fully passing first test suite (13 of 13) hid the failures above. Only manual probing found them.
 
-I didn't hand the whole project over in one shot — I went phase by phase, the way the module was structured, and gave the agent one scoped task at a time instead of "build the whole recommender." Concept phase, implementation phase, evaluation phase, and model card phase were each their own conversation turn, and within each one I asked for specific things rather than a blanket rewrite, so I was still the one deciding what the recipe should actually be and whether a result made sense.
+### Prompts for the capstone
+The prompts were the assignment steps themselves (repo setup, folder structure and venv, the system diagram, the README and reliability requirements, the stretch features) plus follow-ups such as "did you use RAG?" and "fix negation and multi-genre requests".
 
-**Prompts used:**
+## Earlier Origin: Module 3 (VibeFinder 1.0)
 
-These followed the module's own prompts pretty closely:
-
-- "Analyze the available data in songs.csv and suggest which features would be most effective for a simple content-based recommender."
-- "How do I calculate a score for a numerical feature like energy that rewards songs closer to my target, not just higher or lower values?" and "why do I need both a Scoring Rule and a Ranking Rule?"
-- "Implement `load_songs` using Python's csv module, converting numeric fields to floats."
-- "Here's my Algorithm Recipe — genre match worth more than mood match, energy scored by closeness — implement `score_song` so it returns both a numeric score and a list of reasons."
-- "What's the most Pythonic way to loop through all songs, score them, and return the top k sorted highest to lowest? Also, what's the difference between `.sort()` and `sorted()`?"
-- "Suggest adversarial or edge-case user profiles that could break or expose weaknesses in my scoring logic."
-- "Explain why this specific song ranked #1 given my current weights."
-- "Apply this one weight change (double energy, halve genre) and verify the math is still valid."
-- "Look at recommender.py and songs.csv and identify potential filter bubbles or biases in the scoring logic."
-- "Fill out the model card sections in plain language based on what we found."
-
-**What did the agent generate or change?**
-
-- `data/songs.csv` — added 8 songs to get from 10 to 18, in genres/moods the starter set didn't cover
-- `src/recommender.py` — turned the `# TODO` stubs into real `load_songs`, `score_song`, `recommend_songs`, and `Recommender` class logic based on the recipe I gave it
-- `src/main.py` — fixed a broken import that was stopping the file from running at all, and added the stress-test profiles
-- `README.md` and `model_card.md` — wrote up the design reasoning, sample output, stress-test results, and model card sections, which I then read through and adjusted
-
-**What did you verify or fix manually?**
-
-This is the part the module kept emphasizing — stay in control, don't just accept what the AI gives you — so a few things I specifically double-checked instead of taking on faith: I ran `python -m src.main` myself and watched the broken import actually throw a `ModuleNotFoundError` before accepting the fix. When the agent first summarized the weight-shift experiment (doubling energy, halving genre), the numbers it described didn't actually get re-run — I pushed back and had it verify with a real script, which caught that its first guess at the new ranking was wrong. I ran `pytest` after each phase to make sure nothing broke silently, and I read the CLI output for each test profile myself to judge whether the recommendations actually matched my own intuition (e.g., does the "Chill Lofi" profile really surface chill, low-energy songs) rather than trusting that the code just compiling meant it was correct.
-
----
-
-## Design Pattern (SF10)
-
-> Document how AI helped you choose or implement a design pattern.
-
-Not attempted — the project stayed small enough (one scoring function, one ranking function, a couple of dataclasses) that reaching for a named pattern like Strategy or Factory would have been overkill for an 18-song catalog. Leaving this section blank.
+The project this capstone extends, the Module 3 Music Recommender Simulation, also used an AI assistant, phase by phase: feature analysis, implementing `load_songs`, `score_song` and `recommend_songs`, stress-test profiles, bias analysis and the model card. In that module I ran `python -m src.main` and `pytest` myself, and when the assistant described the weight-shift experiment without re-running the math, I had it verify with a real script, which showed its first guess was wrong. That work is documented in [vibefinder_1_0_readme.md](vibefinder_1_0_readme.md) and in sections 1-7 of [model_card.md](model_card.md).
 
 ---
 
