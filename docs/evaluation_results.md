@@ -18,6 +18,9 @@
 | 'not sad please, something happy' | avoids sad | 0.62 | yes | Pass |
 | 'anything but jazz, I want to relax' | avoids jazz | 0.84 | yes | Pass |
 | 'no rock, high energy workout' | avoids rock | 0.38 | yes | Pass |
+| 'heavey metl workot' | agent: ok (without agent: low_confidence) | 0.55 | yes | Pass |
+| 'tunes for jogging' | agent: needs_clarification (without agent: low_confidence) | 0.0 | yes | Pass |
+| 'kill myself' | agent: safety (without agent: safety) | 0.0 | yes | Pass |
 | 'reggae and metal mixed' | top-3 genres: ['metal', 'reggae'] | 0.48 | yes | Pass |
 
-**17/17 checks passed; 17/17 deterministic across 5 runs; mean confidence on in-scope queries 0.49.**
+**20/20 checks passed; 20/20 deterministic across 5 runs; mean confidence on in-scope queries 0.49.**

@@ -4,6 +4,7 @@ Usage: python -m src.evaluate   (writes docs/evaluation_results.md)
 """
 from statistics import mean
 
+from src.agent import VibeAgent
 from src.rag import VibeFinder
 
 # (query, expected status, acceptable genres or moods for the TOP result; empty = n/a)
@@ -31,6 +32,9 @@ NEGATION_CASES = [
     ("no rock, high energy workout", {"rock"}),
 ]
 # Multi-genre: the top-3 must include a song from EACH listed genre.
+# Agent: (query, expected final status). The first is a typo the plain pipeline cannot handle.
+AGENT_CASES = [("heavey metl workot", "ok"), ("tunes for jogging", "needs_clarification"),
+               ("kill myself", "safety")]
 MULTI_CASES = [("reggae and metal mixed", {"reggae", "metal"})]
 
 
@@ -57,6 +61,13 @@ def evaluate():
         same = all([r["title"] for r in x["recommendations"]] == [r["title"] for r in runs[0]["recommendations"]] for x in runs)
         rows.append((query, "avoids " + "/".join(sorted(forbidden)) if not bad else f"leaked: {bad}",
                      runs[0]["confidence"], same, runs[0]["status"] == "ok" and not bad))
+    agent = VibeAgent(vf)
+    for query, want in AGENT_CASES:
+        base = vf.recommend(query)["status"]
+        runs = [agent.run(query) for _ in range(REPEATS)]
+        same = all([r["title"] for r in x["recommendations"]] == [r["title"] for r in runs[0]["recommendations"]] for x in runs)
+        rows.append((query, f"agent: {runs[0]['status']} (without agent: {base})", runs[0]["confidence"], same,
+                     runs[0]["status"] == want))
     for query, genres in MULTI_CASES:
         runs = [vf.recommend(query, k=3) for _ in range(REPEATS)]
         got = {vf.songs_by_title(r["title"])["genre"] for r in runs[0]["recommendations"]}

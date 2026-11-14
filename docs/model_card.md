@@ -77,6 +77,9 @@ This section covers the capstone extension: **VibeFinder RAG**, which adds free-
 - **Noisy retrieval.** Incidental words add weak matches ("night" pulled in a synthwave entry for a study query).
 - **Confidence is a proxy.** The score is the top TF-IDF similarity, which measures word overlap, not whether the recommendation is good. A 0.57 confidence does not mean 57% likely to please.
 
+- **Agent scope.** The agent's only recovery tools are spelling correction and a clarifying question. It cannot fix a query that is simply outside the knowledge base ("tunes for jogging"), and its spelling correction can occasionally pick the wrong word. Its safeguards are that it stops on any guardrail and tries at most one retry.
+- **Song source depends on exact titles.** It only helps when the query names a song or matches its notes strongly, and the notes are hand-written by me.
+
 ## Potential Misuse and Prevention
 
 The system is low-stakes, but there are two realistic risks.
@@ -87,7 +90,7 @@ If this ever recommended real artists, there is also a fairness risk: popularity
 
 ## What Surprised Me While Testing Reliability
 
-- **A 100% pass rate was misleading.** All 13 planned evaluation cases passed and every run was deterministic, yet a few minutes of ad-hoc probing found the negation failure, the mixed-request collapse, a word-form mismatch ('relax' vs 'relaxed') and the self-harm gap. I fixed the first three and added tests for each, so the evaluation now has 17 checks. The planned tests only covered what I'd already thought of.
+- **A 100% pass rate was misleading.** All 13 planned evaluation cases passed and every run was deterministic, yet a few minutes of ad-hoc probing found the negation failure, the mixed-request collapse, a word-form mismatch ('relax' vs 'relaxed') and the self-harm gap. I fixed the first three and added tests for each, so the evaluation now has 20 checks including the agent. The planned tests only covered what I'd already thought of.
 - **The safety gap was invisible until I tried it.** Before the guardrail, a self-harm query returned a calm "couldn't match that" message. That is technically safe, but it ignored the person.
 - **"Confident" and "correct" diverged.** "anything but jazz, I want to relax" scored 0.64 confidence, higher than most correct queries, while returning exactly what the user excluded (before the negation fix).
 

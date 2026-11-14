@@ -5,6 +5,7 @@ profile FROM the retrieved entries -> score the catalog -> verify -> explain wit
 the retrieved sources. The retrieved data determines the profile, so changing the
 knowledge base changes the recommendations.
 """
+import json
 import logging
 import os
 from collections import defaultdict
@@ -17,6 +18,7 @@ from src.retriever import Retriever, load_knowledge_base
 
 LOG_PATH = "logs/vibefinder.log"
 MIN_CONFIDENCE = 0.15
+SONG_MATCH_MIN = 0.50   # otherwise the query must name the song's title outright
 TOP_SOURCES = 3
 DEFAULT_PROFILE = {"genre": "pop", "mood": "happy", "energy": 0.6, "likes_acoustic": False}
 
@@ -74,10 +76,26 @@ def rank_songs(profile: Dict, songs: List[Dict], k: int, excluded_genres=(), exc
     return ranked[:k]
 
 
+def song_entries(songs: List[Dict], notes: Dict[str, str]) -> List[Dict]:
+    """Turns catalog songs plus hand-written notes into retrievable documents (source #2)."""
+    return [{"id": f"song-{s['id']}", "title": f"Song: {s['title']}",
+             "text": f"{s['title']} {s['artist']} {s['genre']} {s['mood']} {notes.get(str(s['id']), '')}",
+             "genres": [s["genre"]], "moods": [s["mood"]], "energy": s["energy"],
+             "acoustic": s["acousticness"] > 0.6, "song_id": s["id"]} for s in songs]
+
+
 class VibeFinder:
-    def __init__(self, songs_path: str = "data/songs.csv", kb_path: str = "data/knowledge_base.json"):
+    def __init__(self, songs_path: str = "data/songs.csv", kb_path: str = "data/knowledge_base.json",
+                 notes_path: str = "data/song_notes.json", use_song_source: bool = True):
         setup_logging()
         self.songs = load_songs(songs_path)
+        self.song_retriever: Optional[Retriever] = None
+        if use_song_source:
+            try:
+                with open(notes_path, encoding="utf-8") as f:
+                    self.song_retriever = Retriever(song_entries(self.songs, json.load(f)))
+            except (OSError, ValueError) as exc:
+                logger.warning("song notes unavailable, using knowledge base only: %s", exc)
         try:
             self.retriever: Optional[Retriever] = Retriever(load_knowledge_base(kb_path))
         except (OSError, ValueError) as exc:
@@ -105,6 +123,13 @@ class VibeFinder:
                 if sim >= MIN_CONFIDENCE:
                     ex_genres.update(entry["genres"] if entry["id"].startswith("genre-") else [])
                     ex_moods.update(entry["moods"] if entry["id"].startswith("mood-") else [])
+        seed_song_ids = set()
+        if self.song_retriever:  # source #2: a query that names or describes a specific song
+            for entry, sim in self.song_retriever.search(wanted, top_n=1):
+                named = entry["title"].split(": ", 1)[1].lower() in wanted.lower()
+                if named or sim >= SONG_MATCH_MIN:
+                    hits = sorted(hits + [(entry, sim)], key=lambda h: h[1], reverse=True)[:TOP_SOURCES]
+                    seed_song_ids.add(entry["song_id"])
         confidence = round(min(1.0, hits[0][1]), 2) if hits else 0.0
         logger.info("query=%r wanted=%r avoided=%r confidence=%.2f sources=%s",
                     cleaned, wanted, avoided, confidence, [e["id"] for e, _ in hits])
@@ -123,7 +148,8 @@ class VibeFinder:
             else:
                 profile.pop(key, None)
                 profile.pop(key + "s", None)
-        recs = verify_recommendations(rank_songs(profile, self.songs, k, ex_genres, ex_moods), self.songs)
+        pool = [x for x in self.songs if x["id"] not in seed_song_ids]  # never recommend the song asked about
+        recs = verify_recommendations(rank_songs(profile, pool, k, ex_genres, ex_moods), self.songs)
         sources = [{"id": e["id"], "title": e["title"], "similarity": round(s, 2)} for e, s in hits]
         why = "; ".join(s["title"] for s in sources)
         results = [{"title": s["title"], "artist": s["artist"], "score": round(sc, 2),

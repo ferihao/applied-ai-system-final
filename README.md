@@ -10,10 +10,10 @@ This capstone extends **VibeFinder 1.0, my Module 3 *Music Recommender Simulatio
 
 VibeFinder 1.0 made the user translate their taste into rigid fields, which is a real usability barrier. This version takes **free text** and works out the profile itself.
 
-1. **RAG:** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation.
+1. **RAG (retrieval-augmented recommendation):** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation. There is no LLM generation step: the ranking comes from the rule-based scorer and the explanations from templates.
 2. **Guardrails:** Input validation, a self-harm safety check, a low-confidence refusal, output verification against the catalog, and a fallback when the knowledge base is unavailable.
 3. **Logging:** Every query, retrieved source, confidence and inferred profile goes to `logs/vibefinder.log`.
-4. **Reliability system:** Confidence scoring, 14 pytest tests, and an evaluation harness that runs fixed queries five times each.
+4. **Reliability system:** Confidence scoring, 19 pytest tests, and an evaluation harness that runs fixed queries five times each.
 
 ## Architecture Overview
 
@@ -37,10 +37,11 @@ source .venv/bin/activate            # Windows PowerShell: .\.venv\Scripts\Activ
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-python -m src.main "chill music for studying late at night"   # RAG mode
+python -m src.main "chill music for studying late at night"   # agent + RAG mode
 python -m src.main                                             # original 6-profile demo
-python -m pytest -q                                            # 14 tests
+python -m pytest -q                                            # 19 tests
 python -m src.evaluate                                         # regenerates docs/evaluation_results.md
+python -m src.agent --save-traces                              # regenerates the traces in docs/ai_interactions.md
 ```
 
 ## Sample Interactions
@@ -78,6 +79,25 @@ Query: 'asdfgh qwerty'  |  status: low_confidence  |  confidence: 0.0
 I couldn't match that to a genre, mood, or situation I know. Try e.g. 'chill music for studying' or 'high energy workout'.
 ```
 
+## Stretch Features
+
+**1. RAG Enhancement: multiple data sources.** Retrieval now searches two sources: the genre/mood/situation knowledge base (`data/knowledge_base.json`) and custom per-song documents (`data/song_notes.json`, hand-written notes merged with each song's catalog attributes). A song is retrieved only if the query names its title or matches it strongly, and the song asked about is never recommended back.
+
+Before/after, real output for `"songs similar to Storm Runner"`:
+
+| | Sources retrieved | Result |
+|---|---|---|
+| Knowledge base only | none | `low_confidence`: the system refuses, because "Storm Runner" appears in no genre, mood or situation entry |
+| With song source | `Song: Storm Runner` (similarity 0.62) | Gym Hero, Neon Pulse Club, Iron Collapse: songs matching Storm Runner's rock/intense/high-energy profile |
+
+I also checked that the extra source doesn't hurt ordinary queries: my first version (similarity threshold 0.30) pulled `Song: Night Drive Loop` into "chill music for studying late at night" because of the word "night". I raised the bar to a title match or similarity 0.50, and the study query went back to its original sources.
+
+**2. Agentic Workflow Enhancement.** `src/agent.py` wraps the pipeline in a plan, act, check loop with three tools (`recommend`, `correct_spelling`, `suggest_options`). It retries a low-confidence query once after fixing likely typos ("heavey metl workot" becomes "heavy metal workout" and returns metal songs, where the plain pipeline refuses). If it still can't tell what the user wants, it asks a clarifying question instead of guessing. It never retries around a guardrail (empty input or self-harm language), and it verifies that the top pick fits the inferred profile before answering. Every step is saved: full traces for four queries are in [docs/ai_interactions.md](docs/ai_interactions.md), and raw traces from every run go to `logs/agent_traces.jsonl`.
+
+**3. Test Harness.** `python -m src.evaluate` runs 20 predefined checks five times each and prints a pass/fail table with confidence and consistency, saved to [docs/evaluation_results.md](docs/evaluation_results.md).
+
+I did not attempt the fine-tuning/specialization stretch: without an LLM it would only be a style tweak to template text, which wouldn't be a meaningful claim.
+
 ## Design Decisions and Trade-offs
 
 - **Offline TF-IDF retrieval instead of an LLM API.** Anyone can clone and run it with no keys or cost, and the results are deterministic and testable (the harness checks identical output across 5 runs). The trade-off is that it only matches *words*: no semantic understanding and no synonyms I didn't write into the knowledge base. Negation is handled by a small rule-based parser, which covers common phrasings only.
@@ -90,7 +110,7 @@ I couldn't match that to a genre, mood, or situation I know. Try e.g. 'chill mus
 
 Full table: [docs/evaluation_results.md](docs/evaluation_results.md).
 
-**Results: 14/14 pytest tests pass. 17/17 evaluation checks pass. All 17 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
+**Results: 19/19 pytest tests pass. 20/20 evaluation checks pass. All 20 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 3 agent queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
 
 **What worked:** Guardrails handled every bad input without a crash. Retrieval put the right entries first for situation words like "workout", "study" and "sleep".
 
@@ -112,9 +132,9 @@ The most useful lesson was how much of "AI quality" is plumbing around the model
 ## Project Structure
 
 ```
-src/        recommender.py (scoring), query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
-tests/      test_recommender.py, test_rag.py
-data/       songs.csv, knowledge_base.json
+src/        recommender.py (scoring), agent.py, query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
+tests/      test_recommender.py, test_rag.py, test_agent.py
+data/       songs.csv, knowledge_base.json, song_notes.json
 diagrams/   architecture.mmd
 docs/       model_card.md, evaluation_results.md, ai_interactions.md, vibefinder_1_0_readme.md
 logs/       vibefinder.log (git-ignored)

@@ -1,6 +1,7 @@
 flowchart TD
     %% INPUT
-    U([User<br/>natural-language request<br/>python -m src.main 'query']) --> G1[Input guardrail<br/>validate, sanitize, length check]
+    U([User<br/>natural-language request<br/>python -m src.main 'query']) --> AG[Agent loop src/agent.py<br/>plan, act, check, retry once]
+    AG --> G1[Input guardrail<br/>validate, sanitize, length check]
     G1 -- invalid --> ERR([Safe error message])
     G1 -- valid --> SAFE{Safety guardrail<br/>self-harm language?}
     SAFE -- yes --> HELP([Support resources, no songs])
@@ -9,7 +10,9 @@ flowchart TD
     SAFE -- no --> QP[Query parser<br/>split wanted vs avoided text]
     QP --> RET[Retriever<br/>stemmed TF-IDF cosine over knowledge base]
     KB[(data/knowledge_base.json<br/>genre, mood, situation entries)] --> RET
-    RET -- no hit / confidence below 0.15 --> LOW([Low-confidence message<br/>asks user to rephrase])
+    SN[(data/song_notes.json<br/>per-song documents)] --> RET
+    RET -- confidence below 0.15 --> AG
+    AG -- typo fix failed --> ASK([Clarifying question])
     KB -. file missing .-> FB[Fallback<br/>default profile]
 
     %% GENERATION
@@ -29,11 +32,13 @@ flowchart TD
     SAFE -.-> LOG
 
     %% TESTING AND HUMAN REVIEW
-    EVAL[Evaluator src/evaluate.py<br/>17 fixed queries x5 runs] -. exercises .-> G1
+    EVAL[Evaluator src/evaluate.py<br/>20 fixed checks x5 runs] -. exercises .-> G1
     EVAL --> REP[docs/evaluation_results.md]
     UT[pytest tests/] -. verifies .-> RET
     UT -. verifies .-> G1
     UT -. verifies .-> SC
+    OUT --> AG
+    AG -. traces .-> TR[(docs/ai_interactions.md<br/>logs/agent_traces.jsonl)]
     OUT --> H{{Human review<br/>read results and eval report}}
     REP --> H
     H -. edit entries, weights, thresholds .-> KB
