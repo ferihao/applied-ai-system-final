@@ -1,10 +1,35 @@
-flowchart LR
-    U[User preferences<br/>genre, mood, energy, acoustic] --> M[src/main.py<br/>CLI entry point]
-    CSV[(data/songs.csv<br/>18-song catalog)] --> L[load_songs]
-    M --> L
-    L --> S[Scoring engine<br/>genre > mood > energy closeness > acoustic match]
-    M --> S
-    S --> R[Rank and select top-K]
-    R --> E[Explanation generator<br/>plain-language reasons]
-    E --> O[Ranked recommendations<br/>printed to terminal]
-    T[tests/test_recommender.py<br/>pytest] -. verifies .-> S
+flowchart TD
+    %% INPUT
+    U([User<br/>natural-language request]) --> G1[Input guardrail<br/>validate and sanitize]
+    G1 -- invalid --> ERR[Safe error message]
+
+    %% RETRIEVAL
+    G1 -- valid --> RET[Retriever<br/>search catalog and genre/mood notes]
+    SONGS[(data/songs.csv)] --> RET
+    KB[(Genre and mood<br/>knowledge base)] --> RET
+
+    %% GENERATION
+    RET -- retrieved context --> LLM[LLM recommender<br/>Claude picks, ranks, explains]
+    LLM -- API failure --> FB[Fallback<br/>rule-based scorer]
+    SONGS --> FB
+
+    %% CHECKING
+    LLM --> G2[Output guardrail<br/>songs must exist in catalog]
+    G2 -- hallucinated song --> FB
+    G2 -- verified --> SC[Scoring engine<br/>re-rank and cross-check]
+    FB --> OUT
+    SC --> OUT([Ranked recommendations<br/>with explanations])
+
+    %% LOGGING
+    G1 -.-> LOG[(logs/<br/>structured run log)]
+    RET -.-> LOG
+    LLM -.-> LOG
+    G2 -.-> LOG
+
+    %% TESTING AND HUMAN REVIEW
+    EVAL[Evaluator<br/>fixed test queries, consistency and accuracy report] -. runs system .-> G1
+    EVAL --> REP[Eval report]
+    UT[pytest unit tests] -. verifies .-> SC
+    OUT --> H{{Human review<br/>user checks results and gives feedback}}
+    REP --> H
+    H -. adjust weights, prompts, knowledge base .-> KB
