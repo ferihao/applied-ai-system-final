@@ -46,6 +46,15 @@ python -m src.agent --save-traces                              # regenerates the
 
 ## Sample Interactions
 
+**Where to find the grading evidence** (all text-based, copied from real runs):
+
+| Requirement | Where |
+|---|---|
+| End-to-end system run, 2-3 inputs | Samples 1-3 below (full input, retrieved sources, ranked output with reasons) |
+| AI feature behavior (RAG, agent) | Sample 1 (retrieved sources build the profile), sample 3 (agent tool calls and retry), sample 4 (second data source), plus before/after in [Stretch Features](#stretch-features) |
+| Reliability, guardrail and evaluation behavior | [Reliability and Guardrail Results](#reliability-and-guardrail-results): guardrail table and the 20-check evaluation table |
+| Clear output for each case | Each case shows its command, input and output; the unedited full log is [docs/execution_evidence.txt](docs/execution_evidence.txt) |
+
 Real, copy-pasted terminal output (long lines and lists trimmed). The complete, unedited log of every command below, plus the test run and the evaluation, is in [docs/execution_evidence.txt](docs/execution_evidence.txt). Regenerate any of it by running the command shown.
 
 **1. Retrieval drives the profile.** Input: `"high energy workout"`
