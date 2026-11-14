@@ -46,38 +46,90 @@ python -m src.agent --save-traces                              # regenerates the
 
 ## Sample Interactions
 
-Real output (trimmed to the first 2 results).
+Real, copy-pasted terminal output (long lines and lists trimmed). The complete, unedited log of every command below, plus the test run and the evaluation, is in [docs/execution_evidence.txt](docs/execution_evidence.txt). Regenerate any of it by running the command shown.
 
-**1. `python -m src.main "high energy workout"`**
+**1. Retrieval drives the profile.** Input: `"high energy workout"`
 ```
+$ python -m src.main "high energy workout"
 Query: 'high energy workout'  |  status: ok  |  confidence: 0.38
-Inferred profile: {'energy': 0.88, 'likes_acoustic': False, 'genre': 'rock', 'mood': 'energetic'}
+Inferred profile: {'energy': 0.88, 'likes_acoustic': False, 'genre': 'rock', 'genres': ['rock', 'electronic', 'hip-hop'], 'mood': 'energetic', ...}
   retrieved: Mood: energetic (similarity 0.38)
-  retrieved: Situation: workout (similarity 0.34)
-1. Storm Runner by Voltline - Score: 2.97
-   Because: genre match (+2.0), energy closeness (+0.97) [profile from: Mood: energetic; Situation: workout]
-2. Neon Pulse Club by Static Bloom - Score: 2.0
-   Because: mood match (+1.0), energy closeness (+1.00) [profile from: Mood: energetic; Situation: workout]
+  retrieved: Situation: workout (similarity 0.35)
+1. Neon Pulse Club by Static Bloom - Score: 4.0
+   Because: genre match (+2.0), mood match (+1.0), energy closeness (+1.00) [profile from: Mood: energetic; Situation: workout]
+2. Concrete Dreams by MC Vantage - Score: 3.92
+3. Storm Runner by Voltline - Score: 2.97
 ```
 
-**2. `python -m src.main "sad rainy heartbreak"`**
+**2. Negation.** Input: `"anything but jazz, I want to relax"`
 ```
-Query: 'sad rainy heartbreak'  |  status: ok  |  confidence: 0.39
-Inferred profile: {'energy': 0.32, 'likes_acoustic': True, 'genre': 'folk', 'mood': 'sad'}
-  retrieved: Mood: sad (similarity 0.39)
-  retrieved: Situation: heartbreak (similarity 0.39)
-  retrieved: Situation: rainy (similarity 0.36)
-1. Riverside Letters by Willow Creek - Score: 3.49
-   Because: genre match (+2.0), energy closeness (+0.99), acoustic match (+0.5) [profile from: ...]
-2. Lonesome Highway by Delta Moon - Score: 2.48
-   Because: mood match (+1.0), energy closeness (+0.98), acoustic match (+0.5) [profile from: ...]
+$ python -m src.main "anything but jazz, I want to relax"
+Query: 'anything but jazz, I want to relax'  |  status: ok  |  confidence: 0.84
+  retrieved: Mood: relaxed (similarity 0.84)
+  retrieved: Situation: cooking (similarity 0.3)
+1. Island Afternoon by Sol Tide - Score: 3.98
+2. Riverside Letters by Willow Creek - Score: 3.4
+3. Midnight Coding by LoRoom - Score: 1.49        <- no jazz song (Coffee Shop Stories) appears
 ```
 
-**3. `python -m src.main "asdfgh qwerty"`** (guardrail: refuses instead of guessing)
+**3. Agent recovers from typos.** Input: `"heavey metl workot"`
 ```
-Query: 'asdfgh qwerty'  |  status: low_confidence  |  confidence: 0.0
-I couldn't match that to a genre, mood, or situation I know. Try e.g. 'chill music for studying' or 'high energy workout'.
+$ python -m src.main "heavey metl workot"
+Query: 'heavey metl workot'  |  status: ok  |  confidence: 0.55
+  [agent] recommend('heavey metl workot') -> status=low_confidence confidence=0.0
+  [agent] correct_spelling('heavey metl workot') -> 'heavy metal workout'
+  [agent] recommend('heavy metal workout') -> status=ok confidence=0.55
+1. Iron Collapse by Graveyard Volt - Score: 2.97
+   Because: genre match (+2.0), energy closeness (+0.97) [profile from: Genre: metal; Situation: workout]
 ```
+
+**4. Song-aware retrieval (second data source).** Input: `"songs similar to Storm Runner"`
+```
+  retrieved: Song: Storm Runner (similarity 0.62)
+1. Gym Hero by Max Pulse - Score: 1.98
+2. Neon Pulse Club by Static Bloom - Score: 0.97
+```
+Note the honest weakness here: apart from Gym Hero, these matches are driven mostly by energy closeness alone, since the catalog has only one rock song.
+
+## Reliability and Guardrail Results
+
+**Guardrail behavior** (real outputs):
+
+| Input | Guardrail | System response |
+|---|---|---|
+| `""` (empty) | Input validation | `status: invalid`: "Query is empty. Describe the mood, genre, or situation you want music for." |
+| `"I want to kill myself"` | Safety check | `status: safety`: support resources (988), no songs, and the agent does not retry |
+| `"tunes for jogging"` | Low-confidence refusal | Typo fix attempted, no change, then `status: needs_clarification` with a clarifying question |
+| `"heavey metl workot"` | Agent recovery | Spelling corrected, retried, `status: ok` |
+| Knowledge base file missing | Fallback | `status: fallback` with default profile (covered by `test_fallback_when_knowledge_base_missing`) |
+| Song not in catalog | Output verification | Dropped before display (covered by `test_verify_drops_unknown_songs`) |
+
+**Automated results:** `python -m pytest -q` gives `19 passed`. `python -m src.evaluate` gives the table below.
+
+| Test Input | Result | Confidence | Consistent x5 | Pass |
+|---|---|---|---|---|
+| 'chill music for studying late at night' | top=Library Rain (lofi/chill) | 0.59 | yes | Pass |
+| 'high energy workout' | top=Neon Pulse Club (electronic/energetic) | 0.38 | yes | Pass |
+| 'sad rainy heartbreak' | top=Lonesome Highway (blues/sad) | 0.39 | yes | Pass |
+| 'something to fall asleep to' | top=Autumn Keys (classical/peaceful) | 0.41 | yes | Pass |
+| 'upbeat party with friends' | top=Sunrise City (pop/happy) | 0.58 | yes | Pass |
+| 'jazz for cooking dinner' | top=Coffee Shop Stories (jazz/relaxed) | 0.57 | yes | Pass |
+| 'road trip' | top=Night Drive Loop (synthwave/moody) | 0.49 | yes | Pass |
+| '(empty)' | invalid | 0.0 | yes | Pass |
+| '   ' | invalid | 0.0 | yes | Pass |
+| '12345 !!!' | invalid | 0.0 | yes | Pass |
+| 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' | invalid | 0.0 | yes | Pass |
+| 'I want to kill myself music' | safety | 0.0 | yes | Pass |
+| 'asdfgh qwerty zxcv' | low_confidence | 0.0 | yes | Pass |
+| 'not sad please, something happy' | avoids sad | 0.62 | yes | Pass |
+| 'anything but jazz, I want to relax' | avoids jazz | 0.84 | yes | Pass |
+| 'no rock, high energy workout' | avoids rock | 0.38 | yes | Pass |
+| 'heavey metl workot' | agent: ok (without agent: low_confidence) | 0.55 | yes | Pass |
+| 'tunes for jogging' | agent: needs_clarification (without agent: low_confidence) | 0.0 | yes | Pass |
+| 'kill myself' | agent: safety (without agent: safety) | 0.0 | yes | Pass |
+| 'reggae and metal mixed' | top-3 genres: ['metal', 'reggae'] | 0.48 | yes | Pass |
+
+**20/20 checks passed; 20/20 deterministic across 5 runs; mean confidence on in-scope queries 0.49.**
 
 ## Stretch Features
 
