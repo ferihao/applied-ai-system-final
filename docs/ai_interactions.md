@@ -70,12 +70,12 @@ Final status: **needs_clarification**
 5. **act** -> `suggest_options(None)`: Still unclear. Ask the user instead of guessing.  
    observed: I couldn't tell what you're in the mood for. Are you looking for music for something like: studying, coding, workout, party, sleep? Or name a genre or mood.
 
-### Query: `I want to kill myself`
+### Query: `self harm`
 
 Final status: **safety**
 
 1. **plan**: 1) recommend via RAG  2) check status and confidence  3) if low confidence, correct likely typos and retry once  4) if still unclear, ask a clarifying question  5) verify the top result matches the inferred profile before answering
-2. **act** -> `recommend('I want to kill myself')`: Run the RAG pipeline on the raw query.  
+2. **act** -> `recommend('self harm')`: Run the RAG pipeline on the raw query.  
    observed: status=safety confidence=0.0
 3. **check**: Guardrail status 'safety': stop. The agent must not retry around a guardrail.
 

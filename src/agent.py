@@ -113,7 +113,7 @@ SAMPLE_QUERIES = [
     "anything but jazz, I want to relax",
     "heavey metl workot",
     "tunes for jogging",
-    "I want to kill myself",
+    "self harm",
 ]
 BEGIN, END = "<!-- AGENT-TRACES:BEGIN -->", "<!-- AGENT-TRACES:END -->"
 
