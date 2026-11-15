@@ -1,6 +1,7 @@
 $ python -m src.main "high energy workout"
 Query: 'high energy workout'  |  status: ok  |  confidence: 0.38
   [agent] recommend('high energy workout') -> status=ok confidence=0.38
+Explanations written by: template
 Inferred profile: {'energy': 0.88, 'likes_acoustic': False, 'genre': 'rock', 'genres': ['rock', 'electronic', 'hip-hop'], 'mood': 'energetic', 'moods': ['energetic']}
   retrieved: Mood: energetic (similarity 0.38)
   retrieved: Situation: workout (similarity 0.35)
@@ -12,11 +13,11 @@ Inferred profile: {'energy': 0.88, 'likes_acoustic': False, 'genre': 'rock', 'ge
    Because: genre match (+2.0), energy closeness (+0.97) [profile from: Mood: energetic; Situation: workout]
 4. Gym Hero by Max Pulse - Score: 0.95
    Because: energy closeness (+0.95) [profile from: Mood: energetic; Situation: workout]
-5. Sunrise City by Neon Echo - Score: 0.94
 
 $ python -m src.main "anything but jazz, I want to relax"
 Query: 'anything but jazz, I want to relax'  |  status: ok  |  confidence: 0.84
   [agent] recommend('anything but jazz, I want to relax') -> status=ok confidence=0.84
+Explanations written by: template
 Inferred profile: {'energy': 0.43, 'likes_acoustic': True, 'genre': 'reggae', 'genres': ['reggae', 'folk'], 'mood': 'relaxed', 'moods': ['relaxed']}
   retrieved: Mood: relaxed (similarity 0.84)
   retrieved: Situation: cooking (similarity 0.3)
@@ -28,11 +29,11 @@ Inferred profile: {'energy': 0.43, 'likes_acoustic': True, 'genre': 'reggae', 'g
    Because: energy closeness (+0.99), acoustic match (+0.5) [profile from: Mood: relaxed; Situation: cooking]
 4. Focus Flow by LoRoom - Score: 1.47
    Because: energy closeness (+0.97), acoustic match (+0.5) [profile from: Mood: relaxed; Situation: cooking]
-5. Library Rain by Paper Lanterns - Score: 1.42
 
 $ python -m src.main "songs similar to Storm Runner"
 Query: 'songs similar to Storm Runner'  |  status: ok  |  confidence: 0.62
   [agent] recommend('songs similar to Storm Runner') -> status=ok confidence=0.62
+Explanations written by: template
 Inferred profile: {'energy': 0.91, 'likes_acoustic': False, 'genre': 'rock', 'genres': ['rock'], 'mood': 'intense', 'moods': ['intense']}
   retrieved: Song: Storm Runner (similarity 0.62)
 1. Gym Hero by Max Pulse - Score: 1.98
@@ -44,13 +45,13 @@ Inferred profile: {'energy': 0.91, 'likes_acoustic': False, 'genre': 'rock', 'ge
 4. Sunrise City by Neon Echo - Score: 0.91
    Because: energy closeness (+0.91) [profile from: Song: Storm Runner]
 5. Concrete Dreams by MC Vantage - Score: 0.89
-   Because: energy closeness (+0.89) [profile from: Song: Storm Runner]
 
 $ python -m src.main "heavey metl workot"
 Query: 'heavey metl workot'  |  status: ok  |  confidence: 0.55
   [agent] recommend('heavey metl workot') -> status=low_confidence confidence=0.0
   [agent] correct_spelling('heavey metl workot') -> 'heavy metal workout'
   [agent] recommend('heavy metal workout') -> status=ok confidence=0.55
+Explanations written by: template
 Inferred profile: {'energy': 0.94, 'likes_acoustic': False, 'genre': 'metal', 'genres': ['metal'], 'mood': 'intense', 'moods': ['intense', 'energetic']}
   retrieved: Genre: metal (similarity 0.55)
   retrieved: Situation: workout (similarity 0.35)
@@ -60,7 +61,6 @@ Inferred profile: {'energy': 0.94, 'likes_acoustic': False, 'genre': 'metal', 'g
    Because: mood match (+1.0), energy closeness (+0.99) [profile from: Genre: metal; Situation: workout]
 3. Storm Runner by Voltline - Score: 1.97
    Because: mood match (+1.0), energy closeness (+0.97) [profile from: Genre: metal; Situation: workout]
-4. Neon Pulse Club by Static Bloom - Score: 1.94
 
 $ python -m src.main ""
 Query: ''  |  status: invalid  |  confidence: 0.0
@@ -80,8 +80,8 @@ I couldn't tell what you're in the mood for. Are you looking for music for somet
   [agent] suggest_options(None) -> I couldn't tell what you're in the mood for. Are you looking for music for something like: studying, coding, workout, party, sleep? Or 
 
 $ python -m pytest -q
-...................                                                      [100%]
-19 passed in 0.04s
+............................                                             [100%]
+28 passed in 0.06s
 
 $ python -m src.evaluate
 # Evaluation Results
