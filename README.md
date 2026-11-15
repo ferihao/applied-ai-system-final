@@ -198,7 +198,7 @@ I also checked that the extra source doesn't hurt ordinary queries: my first ver
 | States low/medium/high energy | 53% | 100% |
 | No filler phrases ("this song", "fits the request") | 13% | 100% |
 
-Real output (`python -m src.main "sad rainy heartbreak" --style concise`): `Low energy blues that captures the sadness and heartbreak of a rainy day.` The default prompt's answer to the same request is two sentences and 38 words.
+Real output (`python -m src.main "sad rainy heartbreak" --style concise`): `Low energy blues that captures the sadness and heartbreak of a rainy day.` The default prompt's answer to the same request is two sentences and 39 words (from `docs/llm_evidence.txt`).
 
 **What this does and does not show:** The rules measured are the ones the few-shot prompt asks for, so this proves the model follows the style reliably on this test set, not that the shorter explanations are *better*. The sample is small, and LLM wording varies between runs, so exact percentages can shift slightly (the large gap should not).
 
