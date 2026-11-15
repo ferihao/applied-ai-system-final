@@ -13,7 +13,7 @@ VibeFinder 1.0 made the user translate their taste into rigid fields, which is a
 1. **RAG (retrieval-augmented recommendation):** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation. The ranking always comes from the rule-based scorer. By default the explanations come from templates; with `--llm`, a local Ollama model writes them (see [Optional LLM Generation](#optional-llm-generation-ollama)).
 2. **Guardrails:** Input validation, a self-harm safety check, a low-confidence refusal, output verification against the catalog, and a fallback when the knowledge base is unavailable.
 3. **Logging:** Every query, retrieved source, confidence and inferred profile goes to `logs/vibefinder.log`.
-4. **Reliability system:** Confidence scoring, 24 pytest tests, and an evaluation harness that runs fixed queries five times each.
+4. **Reliability system:** Confidence scoring, 28 pytest tests, and an evaluation harness that runs fixed queries five times each.
 
 ## Architecture Overview
 
@@ -39,8 +39,9 @@ pip install -r requirements.txt
 
 python -m src.main "chill music for studying late at night"   # agent + RAG mode
 python -m src.main                                             # original 6-profile demo
-python -m pytest -q                                            # 24 tests
+python -m pytest -q                                            # 28 tests
 python -m src.main "sad rainy heartbreak" --llm                 # optional: Ollama writes the explanations
+python -m src.style_eval                                       # optional: baseline vs few-shot style (needs Ollama)
 python -m src.evaluate                                         # regenerates docs/evaluation_results.md
 python -m src.agent --save-traces                              # regenerates the traces in docs/ai_interactions.md
 ```
@@ -114,7 +115,7 @@ Note the honest weakness here: apart from Gym Hero, these matches are driven mos
 | Knowledge base file missing | Fallback | `status: fallback` with default profile (covered by `test_fallback_when_knowledge_base_missing`) |
 | Song not in catalog | Output verification | Dropped before display (covered by `test_verify_drops_unknown_songs`) |
 
-**Automated results:** `python -m pytest -q` gives `24 passed`. `python -m src.evaluate` gives the table below.
+**Automated results:** `python -m pytest -q` gives `28 passed`. `python -m src.evaluate` gives the table below.
 
 | Test Input | Result | Confidence | Consistent x5 | Pass |
 |---|---|---|---|---|
@@ -187,7 +188,19 @@ I also checked that the extra source doesn't hurt ordinary queries: my first ver
 
 **3. Test Harness.** `python -m src.evaluate` runs 20 predefined checks five times each and prints a pass/fail table with confidence and consistency, saved to [docs/evaluation_results.md](docs/evaluation_results.md).
 
-I did not attempt the fine-tuning/specialization stretch. The optional Ollama step uses a stock model with a grounded prompt, not a fine-tuned or specialized one, so I'm not claiming it.
+**4. Specialization (few-shot, constrained style).** `--style concise` specializes the Ollama explanations with a style rule and three few-shot examples (invented songs, so nothing leaks into real recommendations): exactly one sentence, at most 18 words, and a stated energy level. It is prompt-level specialization, not fine-tuning: no model weights change. `python -m src.style_eval` runs both prompts on the same 5 queries x top 3 songs (15 explanations each) with the same model and settings. Results from [docs/style_comparison.md](docs/style_comparison.md):
+
+| Metric | default prompt | few-shot concise |
+|---|---|---|
+| Average words | 28.3 | 11.4 |
+| Exactly one sentence | 80% | 100% |
+| At most 18 words | 0% | 100% |
+| States low/medium/high energy | 53% | 100% |
+| No filler phrases ("this song", "fits the request") | 13% | 100% |
+
+Real output (`python -m src.main "sad rainy heartbreak" --style concise`): `Low energy blues that captures the sadness and heartbreak of a rainy day.` The default prompt's answer to the same request is two sentences and 38 words.
+
+**What this does and does not show:** The rules measured are the ones the few-shot prompt asks for, so this proves the model follows the style reliably on this test set, not that the shorter explanations are *better*. The sample is small, and LLM wording varies between runs, so exact percentages can shift slightly (the large gap should not).
 
 ## Design Decisions and Trade-offs
 
@@ -201,7 +214,7 @@ I did not attempt the fine-tuning/specialization stretch. The optional Ollama st
 
 Full table: [docs/evaluation_results.md](docs/evaluation_results.md).
 
-**Results: 24/24 pytest tests pass. 20/20 evaluation checks pass. All 20 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 3 agent queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
+**Results: 28/28 pytest tests pass. 20/20 evaluation checks pass. All 20 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 3 agent queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
 
 **What worked:** Guardrails handled every bad input without a crash. Retrieval put the right entries first for situation words like "workout", "study" and "sleep".
 
@@ -223,11 +236,11 @@ The most useful lesson was how much of "AI quality" is plumbing around the model
 ## Project Structure
 
 ```
-src/        recommender.py (scoring), llm.py, agent.py, query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
-tests/      test_recommender.py, test_rag.py, test_agent.py, test_llm.py
+src/        recommender.py (scoring), llm.py, style_eval.py, agent.py, query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
+tests/      test_recommender.py, test_rag.py, test_agent.py, test_llm.py, test_style.py
 data/       songs.csv, knowledge_base.json, song_notes.json
 diagrams/   architecture.mmd
-docs/       llm_evidence.txt, model_card.md, evaluation_results.md, ai_interactions.md, vibefinder_1_0_readme.md
+docs/       llm_evidence.txt, style_comparison.md, model_card.md, evaluation_results.md, ai_interactions.md, vibefinder_1_0_readme.md
 logs/       vibefinder.log (git-ignored)
 assets/     images for the README
 ```

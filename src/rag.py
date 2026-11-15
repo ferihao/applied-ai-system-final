@@ -88,9 +88,10 @@ def song_entries(songs: List[Dict], notes: Dict[str, str]) -> List[Dict]:
 class VibeFinder:
     def __init__(self, songs_path: str = "data/songs.csv", kb_path: str = "data/knowledge_base.json",
                  notes_path: str = "data/song_notes.json", use_song_source: bool = True,
-                 use_llm: bool = False):
+                 use_llm: bool = False, llm_style: str = "default"):
         setup_logging()
         self.use_llm = use_llm
+        self.llm_style = llm_style
         self.songs = load_songs(songs_path)
         self.song_retriever: Optional[Retriever] = None
         if use_song_source:
@@ -162,7 +163,7 @@ class VibeFinder:
             by_title = {x["title"]: x for x in self.songs}
             context = [f"{e['title']}: {e['text']}" for e, _ in hits]
             facts = [{**by_title[r["title"]], "why": r["explanation"].split(" [profile")[0]} for r in results]
-            written = llm.generate_explanations(cleaned, context, facts, [x["title"] for x in self.songs])
+            written = llm.generate_explanations(cleaned, context, facts, [x["title"] for x in self.songs], self.llm_style)
             if written:
                 for r in results:
                     if r["title"] in written:

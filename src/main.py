@@ -43,9 +43,9 @@ def print_recommendations(songs, user_prefs, k=5) -> None:
         print()
 
 
-def run_query(query: str, k: int = 5, use_llm: bool = False) -> None:
+def run_query(query: str, k: int = 5, use_llm: bool = False, style: str = "default") -> None:
     """RAG mode: free-text request -> retrieved context -> recommendations."""
-    result = VibeAgent(VibeFinder(use_llm=use_llm)).run(query)
+    result = VibeAgent(VibeFinder(use_llm=use_llm, llm_style=style)).run(query)
     print(f"Query: {query!r}  |  status: {result['status']}  |  confidence: {result['confidence']}")
     if result.get("message"):
         print(result["message"])
@@ -64,9 +64,15 @@ def run_query(query: str, k: int = 5, use_llm: bool = False) -> None:
 
 
 def main() -> None:
-    args = [a for a in sys.argv[1:] if a != "--llm"]
+    argv = sys.argv[1:]
+    style = "default"
+    if "--style" in argv:
+        i = argv.index("--style")
+        style = argv[i + 1] if i + 1 < len(argv) else "default"
+        del argv[i:i + 2]
+    args = [a for a in argv if a != "--llm"]
     if args:
-        run_query(" ".join(args), use_llm="--llm" in sys.argv)
+        run_query(" ".join(args), use_llm="--llm" in argv or style != "default", style=style)
         return
     songs = load_songs("data/songs.csv")
     print(f"Loaded songs: {len(songs)}")
