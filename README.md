@@ -10,10 +10,10 @@ This capstone extends **VibeFinder 1.0, my Module 3 *Music Recommender Simulatio
 
 VibeFinder 1.0 made the user translate their taste into rigid fields, which is a real usability barrier. This version takes **free text** and works out the profile itself.
 
-1. **RAG (retrieval-augmented recommendation):** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation. There is no LLM generation step: the ranking comes from the rule-based scorer and the explanations from templates.
+1. **RAG (retrieval-augmented recommendation):** A TF-IDF retriever searches a 37-entry knowledge base (`data/knowledge_base.json`) of genre, mood and situation descriptions. The retrieved entries, weighted by similarity, *build the taste profile* that drives scoring. Change the knowledge base and the recommendations change. The retrieved sources are cited in every explanation. The ranking always comes from the rule-based scorer. By default the explanations come from templates; with `--llm`, a local Ollama model writes them (see [Optional LLM Generation](#optional-llm-generation-ollama)).
 2. **Guardrails:** Input validation, a self-harm safety check, a low-confidence refusal, output verification against the catalog, and a fallback when the knowledge base is unavailable.
 3. **Logging:** Every query, retrieved source, confidence and inferred profile goes to `logs/vibefinder.log`.
-4. **Reliability system:** Confidence scoring, 19 pytest tests, and an evaluation harness that runs fixed queries five times each.
+4. **Reliability system:** Confidence scoring, 24 pytest tests, and an evaluation harness that runs fixed queries five times each.
 
 ## Architecture Overview
 
@@ -27,7 +27,7 @@ Source: [diagrams/architecture.mmd](diagrams/architecture.mmd) (Mermaid).
 
 ## Setup Instructions
 
-Requires Python 3.9+. No API keys and no network access.
+Requires Python 3.9+. The default mode needs no API keys and no network access. The optional `--llm` mode needs [Ollama](https://ollama.com) running locally (free).
 
 ```bash
 git clone https://github.com/ferihao/applied-ai-system-final.git
@@ -39,7 +39,8 @@ pip install -r requirements.txt
 
 python -m src.main "chill music for studying late at night"   # agent + RAG mode
 python -m src.main                                             # original 6-profile demo
-python -m pytest -q                                            # 19 tests
+python -m pytest -q                                            # 24 tests
+python -m src.main "sad rainy heartbreak" --llm                 # optional: Ollama writes the explanations
 python -m src.evaluate                                         # regenerates docs/evaluation_results.md
 python -m src.agent --save-traces                              # regenerates the traces in docs/ai_interactions.md
 ```
@@ -113,7 +114,7 @@ Note the honest weakness here: apart from Gym Hero, these matches are driven mos
 | Knowledge base file missing | Fallback | `status: fallback` with default profile (covered by `test_fallback_when_knowledge_base_missing`) |
 | Song not in catalog | Output verification | Dropped before display (covered by `test_verify_drops_unknown_songs`) |
 
-**Automated results:** `python -m pytest -q` gives `19 passed`. `python -m src.evaluate` gives the table below.
+**Automated results:** `python -m pytest -q` gives `24 passed`. `python -m src.evaluate` gives the table below.
 
 | Test Input | Result | Confidence | Consistent x5 | Pass |
 |---|---|---|---|---|
@@ -140,6 +141,35 @@ Note the honest weakness here: apart from Gym Hero, these matches are driven mos
 
 **20/20 checks passed; 20/20 deterministic across 5 runs; mean confidence on in-scope queries 0.49.**
 
+## Optional LLM Generation (Ollama)
+
+With `--llm`, a local, free [Ollama](https://ollama.com) model (default `llama3.1:8b`, override with `OLLAMA_MODEL`) writes the explanation for each recommendation. This is the generation half of retrieval-augmented generation: the model is given the user's request, the **retrieved knowledge-base text**, and the facts for each song the scorer already chose, and writes the explanation from only that context.
+
+```bash
+ollama pull llama3.1:8b                  # once; Ollama must be running
+python -m src.main "sad rainy heartbreak" --llm
+```
+
+What the model does *not* do: it never picks or ranks songs, so scores and rankings stay rule-based and auditable. Its explanation sits next to the numeric score reasons.
+
+**Guardrails around the LLM** (`src/llm.py`):
+- **Grounding check.** An explanation that mentions a different catalog song, is empty, or is over 300 characters is rejected, and that song falls back to the template explanation.
+- **Title check.** Explanations for songs that were not recommended are dropped.
+- **Fallback.** If Ollama is down, times out, or returns unusable JSON, the pipeline logs a warning and uses template explanations. It never crashes. The result reports which was used (`Explanations written by: llm (llama3.1:8b)` or `template (llm unavailable or rejected)`).
+
+Real output (`python -m src.main "sad rainy heartbreak" --llm`, first result), from [docs/llm_evidence.txt](docs/llm_evidence.txt):
+```
+Explanations written by: llm (llama3.1:8b)
+1. Lonesome Highway by Delta Moon - Score: 4.48
+   Because: This song fits the request because it matches the mood of sadness and heartbreak, and its blues genre is a good fit for a rainy day. The low energy level also complements the feeling of being down and lonely. (score: genre match (+2.0), mood match (+1.0), energy closeness (+0.98), ...)
+```
+The same query without `--llm` gives `Because: genre match (+2.0), mood match (+1.0), ... [profile from: Mood: sad; Situation: heartbreak; Situation: rainy]`.
+
+**Honest limits of this step:**
+- **Not deterministic.** Even with temperature 0 and a fixed seed, two runs of the same query produced different wording (checked in `docs/llm_evidence.txt`). Rankings and scores are still identical. For that reason the evaluation harness and the repeatability claims cover the default template mode only.
+- **Small-model wording.** An 8B model can give fluent but generic or slightly stretched reasons (for example calling a melancholy folk song a fit for "relaxed"), and the grounding check only catches *other catalog songs*, not every unsupported claim.
+- **Tests don't need Ollama.** The five LLM tests mock the model, so the suite passes offline. The live runs in `docs/llm_evidence.txt` are real.
+
 ## Stretch Features
 
 **1. RAG Enhancement: multiple data sources.** Retrieval now searches two sources: the genre/mood/situation knowledge base (`data/knowledge_base.json`) and custom per-song documents (`data/song_notes.json`, hand-written notes merged with each song's catalog attributes). A song is retrieved only if the query names its title or matches it strongly, and the song asked about is never recommended back.
@@ -157,11 +187,11 @@ I also checked that the extra source doesn't hurt ordinary queries: my first ver
 
 **3. Test Harness.** `python -m src.evaluate` runs 20 predefined checks five times each and prints a pass/fail table with confidence and consistency, saved to [docs/evaluation_results.md](docs/evaluation_results.md).
 
-I did not attempt the fine-tuning/specialization stretch: without an LLM it would only be a style tweak to template text, which wouldn't be a meaningful claim.
+I did not attempt the fine-tuning/specialization stretch. The optional Ollama step uses a stock model with a grounded prompt, not a fine-tuned or specialized one, so I'm not claiming it.
 
 ## Design Decisions and Trade-offs
 
-- **Offline TF-IDF retrieval instead of an LLM API.** Anyone can clone and run it with no keys or cost, and the results are deterministic and testable (the harness checks identical output across 5 runs). The trade-off is that it only matches *words*: no semantic understanding and no synonyms I didn't write into the knowledge base. Negation is handled by a small rule-based parser, which covers common phrasings only.
+- **Offline TF-IDF retrieval, with the LLM optional and local.** The default mode needs no keys or cost, and its results are deterministic and testable (the harness checks identical output across 5 runs). The generation step uses a free local Ollama model behind `--llm`, so it never blocks someone who clones the repo without Ollama, at the price of non-deterministic wording in that mode. The trade-off is that it only matches *words*: no semantic understanding and no synonyms I didn't write into the knowledge base. Negation is handled by a small rule-based parser, which covers common phrasings only.
 - **Retrieval builds the profile; the original scorer ranks.** I kept VibeFinder 1.0's explainable scoring rather than replacing it, so retrieval genuinely changes behavior while every score stays auditable. The trade-off is that it inherits 1.0's known genre-over-mood bias.
 - **Refuse over guess.** Below the 0.15 confidence threshold the system declines. This costs some coverage but avoids confident nonsense.
 - **Safety check before retrieval.** A self-harm query should never get a playlist, so this check runs before everything else. A keyword list is crude, but it fails safe.
@@ -171,7 +201,7 @@ I did not attempt the fine-tuning/specialization stretch: without an LLM it woul
 
 Full table: [docs/evaluation_results.md](docs/evaluation_results.md).
 
-**Results: 19/19 pytest tests pass. 20/20 evaluation checks pass. All 20 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 3 agent queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
+**Results: 24/24 pytest tests pass. 20/20 evaluation checks pass. All 20 are deterministic across 5 repeated runs. Mean confidence on in-scope queries is 0.49.** The checks cover 7 in-scope queries, 3 negation queries, 1 multi-genre query, 3 agent queries, 4 invalid-input cases, 1 self-harm case and 1 gibberish case.
 
 **What worked:** Guardrails handled every bad input without a crash. Retrieval put the right entries first for situation words like "workout", "study" and "sleep".
 
@@ -193,11 +223,11 @@ The most useful lesson was how much of "AI quality" is plumbing around the model
 ## Project Structure
 
 ```
-src/        recommender.py (scoring), agent.py, query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
-tests/      test_recommender.py, test_rag.py, test_agent.py
+src/        recommender.py (scoring), llm.py, agent.py, query_parser.py, retriever.py, guardrails.py, rag.py, evaluate.py, main.py
+tests/      test_recommender.py, test_rag.py, test_agent.py, test_llm.py
 data/       songs.csv, knowledge_base.json, song_notes.json
 diagrams/   architecture.mmd
-docs/       model_card.md, evaluation_results.md, ai_interactions.md, vibefinder_1_0_readme.md
+docs/       llm_evidence.txt, model_card.md, evaluation_results.md, ai_interactions.md, vibefinder_1_0_readme.md
 logs/       vibefinder.log (git-ignored)
 assets/     images for the README
 ```

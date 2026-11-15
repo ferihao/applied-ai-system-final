@@ -1,0 +1,42 @@
+# Live Ollama run: model llama3.1:8b, temperature 0, seed 7
+
+$ python -m src.main "sad rainy heartbreak" --llm
+Query: 'sad rainy heartbreak'  |  status: ok  |  confidence: 0.39
+Explanations written by: llm (llama3.1:8b)
+Inferred profile: {'energy': 0.32, 'likes_acoustic': True, 'genre': 'folk', 'genres': ['folk', 'blues'], 'mood': 'sad', 'moods': ['sad']}
+  retrieved: Mood: sad (similarity 0.39)
+  retrieved: Situation: heartbreak (similarity 0.39)
+  retrieved: Situation: rainy (similarity 0.36)
+1. Lonesome Highway by Delta Moon - Score: 4.48
+   Because: This song fits the request because it matches the mood of sadness and heartbreak, and its blues genre is a good fit for a rainy day. The low energy level also complements the feeling of being down and lonely. (score: genre match (+2.0), mood match (+1.0), energy closeness (+0.98), acoust
+2. Riverside Letters by Willow Creek - Score: 3.49
+
+$ python -m src.main "anything but jazz, I want to relax" --llm
+Query: 'anything but jazz, I want to relax'  |  status: ok  |  confidence: 0.84
+Explanations written by: llm (llama3.1:8b)
+Inferred profile: {'energy': 0.43, 'likes_acoustic': True, 'genre': 'reggae', 'genres': ['reggae', 'folk'], 'mood': 'relaxed', 'moods': ['relaxed']}
+  retrieved: Mood: relaxed (similarity 0.84)
+  retrieved: Situation: cooking (similarity 0.3)
+1. Island Afternoon by Sol Tide - Score: 3.98
+   Because: This song fits the request because it has a relaxed mood and a genre match with reggae, which is often associated with a laid-back atmosphere. (score: genre match (+2.0), mood match (+1.0), energy closeness (+0.98))
+2. Riverside Letters by Willow Creek - Score: 3.4
+   Because: This song fits the request because it has a melancholy mood, but its folk genre and low energy level create a calm and soothing atmosphere suitable for a relaxed evening. (score: genre match (+2.0), energy closeness (+0.90), acoustic match (+0.5))
+
+# Same query WITHOUT --llm (template explanations) for comparison
+$ python -m src.main "sad rainy heartbreak"
+Query: 'sad rainy heartbreak'  |  status: ok  |  confidence: 0.39
+Explanations written by: template
+Inferred profile: {'energy': 0.32, 'likes_acoustic': True, 'genre': 'folk', 'genres': ['folk', 'blues'], 'mood': 'sad', 'moods': ['sad']}
+  retrieved: Mood: sad (similarity 0.39)
+  retrieved: Situation: heartbreak (similarity 0.39)
+  retrieved: Situation: rainy (similarity 0.36)
+1. Lonesome Highway by Delta Moon - Score: 4.48
+   Because: genre match (+2.0), mood match (+1.0), energy closeness (+0.98), acoustic match (+0.5) [profile from: Mood: sad; Situation: heartbreak; Situation: rainy]
+
+# Determinism: two runs of the same --llm query
+identical explanations: False | source: llm (llama3.1:8b)
+
+# Ollama stopped/unreachable: falls back to templates (simulated with a bad URL)
+Query: 'sad rainy heartbreak'  |  status: ok  |  confidence: 0.39
+Explanations written by: template (llm unavailable or rejected)
+Inferred profile: {'energy': 0.32, 'likes_acoustic': True, 'genre': 'folk', 'genres': ['folk', 'blues'], 'mood': 'sad', 'moods': ['sad']}

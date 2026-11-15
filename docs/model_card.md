@@ -80,6 +80,8 @@ This section covers the capstone extension: **VibeFinder RAG**, which adds free-
 - **Agent scope.** The agent's only recovery tools are spelling correction and a clarifying question. It cannot fix a query that is simply outside the knowledge base ("tunes for jogging"), and its spelling correction can occasionally pick the wrong word. Its safeguards are that it stops on any guardrail and tries at most one retry.
 - **Song source depends on exact titles.** It only helps when the query names a song or matches its notes strongly, and the notes are hand-written by me.
 
+- **LLM explanations (optional mode).** A small local model can produce fluent but unsupported or generic reasons. The grounding check only rejects mentions of other catalog songs, so an inaccurate claim about the recommended song itself can get through. Wording also varies between runs. Rankings do not depend on the LLM.
+
 ## Potential Misuse and Prevention
 
 The system is low-stakes, but there are two realistic risks.
@@ -100,6 +102,6 @@ I built this with Claude Code. It wrote most of the code, and I directed the sco
 
 **Suggestion I accepted:** The AI proposed a *guardrail-and-evaluation layer* around the retriever: an input validator, an output check that every song exists in the catalog, a low-confidence refusal and a repeated-run consistency test. I accepted it because it matched what the assignment asked me to prove, and it made the system testable. Its later probing also found the self-harm gap, which led to the safety guardrail.
 
-**Suggestion I changed/scoped down:** The AI's first plan was an LLM-based RAG: retrieve context, then have Claude generate and explain recommendations through the Anthropic API. I did not adopt that as written. It needs an API key, costs money per query, and gives non-deterministic output, which makes my reliability claims hard to verify and makes the project hard for an employer to reproduce. We changed it to a fully offline design: TF-IDF retrieval plus the original rule-based scorer. I gave up natural-language flexibility (see the negation limitation) and gained reproducibility, determinism and an auditable explanation trail.
+**Suggestion I changed/scoped down:** The AI's first plan was an LLM-based RAG: retrieve context, then have Claude generate and explain recommendations through the Anthropic API. I did not adopt that as written. It needs an API key, costs money per query, and gives non-deterministic output, which makes my reliability claims hard to verify and makes the project hard for an employer to reproduce. We built a deterministic offline design first (TF-IDF retrieval plus the original rule-based scorer). I later proposed using a free local Ollama model for the generation step, and we added it as an optional `--llm` mode where the model only writes explanations, never ranks, behind a grounding guardrail and a template fallback. I gave up determinism in that mode (the wording varies between runs) in exchange for a real generation step.
 
 **Where AI was wrong or needed checking:** The first generated knowledge-base file had empty text for all ten situation entries because of a bug in its generating script. I caught it by checking the output, and it was fixed before anything depended on it.

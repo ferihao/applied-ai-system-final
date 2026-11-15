@@ -11,6 +11,7 @@ import os
 from collections import defaultdict
 from typing import Dict, List, Optional
 
+from src import llm
 from src.guardrails import CRISIS_MESSAGE, is_crisis_query, validate_query, verify_recommendations
 from src.query_parser import parse_query
 from src.recommender import load_songs, recommend_songs
@@ -86,8 +87,10 @@ def song_entries(songs: List[Dict], notes: Dict[str, str]) -> List[Dict]:
 
 class VibeFinder:
     def __init__(self, songs_path: str = "data/songs.csv", kb_path: str = "data/knowledge_base.json",
-                 notes_path: str = "data/song_notes.json", use_song_source: bool = True):
+                 notes_path: str = "data/song_notes.json", use_song_source: bool = True,
+                 use_llm: bool = False):
         setup_logging()
+        self.use_llm = use_llm
         self.songs = load_songs(songs_path)
         self.song_retriever: Optional[Retriever] = None
         if use_song_source:
@@ -154,8 +157,23 @@ class VibeFinder:
         why = "; ".join(s["title"] for s in sources)
         results = [{"title": s["title"], "artist": s["artist"], "score": round(sc, 2),
                     "explanation": f"{ex} [profile from: {why}]"} for s, sc, ex in recs]
-        logger.info("profile=%s top=%s", profile, [r["title"] for r in results])
+        explanation_source = "template"
+        if self.use_llm and results:
+            by_title = {x["title"]: x for x in self.songs}
+            context = [f"{e['title']}: {e['text']}" for e, _ in hits]
+            facts = [{**by_title[r["title"]], "why": r["explanation"].split(" [profile")[0]} for r in results]
+            written = llm.generate_explanations(cleaned, context, facts, [x["title"] for x in self.songs])
+            if written:
+                for r in results:
+                    if r["title"] in written:
+                        r["explanation"] = f"{written[r['title']]} (score: {r['explanation'].split(' [profile')[0]})"
+                        r["explanation_source"] = "llm"
+                explanation_source = f"llm ({llm.OLLAMA_MODEL})" if all(r.get("explanation_source") == "llm" for r in results) else "llm partial, template fallback"
+            else:
+                explanation_source = "template (llm unavailable or rejected)"
+        logger.info("profile=%s top=%s explanations=%s", profile, [r["title"] for r in results], explanation_source)
         return {"status": "ok", "confidence": confidence, "profile": profile, "sources": sources,
+                "explanation_source": explanation_source,
                 "avoided": sorted(ex_genres | ex_moods),
                 "recommendations": results}
 

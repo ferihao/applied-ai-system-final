@@ -12,6 +12,7 @@ You will implement the functions in recommender.py:
 import sys
 
 from src.agent import VibeAgent
+from src.rag import VibeFinder
 from src.recommender import load_songs, recommend_songs
 
 
@@ -42,15 +43,17 @@ def print_recommendations(songs, user_prefs, k=5) -> None:
         print()
 
 
-def run_query(query: str, k: int = 5) -> None:
+def run_query(query: str, k: int = 5, use_llm: bool = False) -> None:
     """RAG mode: free-text request -> retrieved context -> recommendations."""
-    result = VibeAgent().run(query)
+    result = VibeAgent(VibeFinder(use_llm=use_llm)).run(query)
     print(f"Query: {query!r}  |  status: {result['status']}  |  confidence: {result['confidence']}")
     if result.get("message"):
         print(result["message"])
     for t in result.get("trace", []):
         if t["tool"]:
             print(f"  [agent] {t['tool']}({t['input']!r}) -> {t['observation']}")
+    if result.get("explanation_source"):
+        print(f"Explanations written by: {result['explanation_source']}")
     if result.get("profile"):
         print(f"Inferred profile: {result['profile']}")
     for src in result.get("sources", []):
@@ -61,8 +64,9 @@ def run_query(query: str, k: int = 5) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) > 1:
-        run_query(" ".join(sys.argv[1:]))
+    args = [a for a in sys.argv[1:] if a != "--llm"]
+    if args:
+        run_query(" ".join(args), use_llm="--llm" in sys.argv)
         return
     songs = load_songs("data/songs.csv")
     print(f"Loaded songs: {len(songs)}")
