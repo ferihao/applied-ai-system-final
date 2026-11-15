@@ -98,10 +98,45 @@ If this ever recommended real artists, there is also a fairness risk: popularity
 
 ## Collaboration With AI
 
-I built this with Claude Code. It wrote most of the code, and I directed the scope and checked the results. Please treat the two examples below as the record of this session.
+I built this with Claude Code. It wrote most of the code, and I directed the scope and checked the results.
+
+- **Prompting:** The assignment steps were my prompts (repo setup, folder structure, diagram, README and reliability requirements, each stretch feature), plus follow-ups where I questioned the work, such as "did you use RAG?", and ones that changed direction, such as "fix negation and multi-genre requests" and "use a free Ollama model for the LLM step".
+- **Debugging:** The AI ran adversarial queries against the system and found failures that my 13 planned checks missed: ignored negation, mixed-genre requests, word-form mismatches and a self-harm gap. When the first LLM call fell back to templates, we read the logs and the raw model output, which showed the model had keyed its answers as "Title by Artist" and dropped a wrapper key. The parser was fixed to accept both.
+- **Design:** The AI proposed the guardrail, evaluation and agent structure and the two-source retrieval. I made the scope decisions: which prior project to extend, which stretch features to attempt, and an optional local LLM, not a paid API.
 
 **Suggestion I accepted:** The AI proposed a *guardrail-and-evaluation layer* around the retriever: an input validator, an output check that every song exists in the catalog, a low-confidence refusal and a repeated-run consistency test. I accepted it because it matched what the assignment asked me to prove, and it made the system testable. Its later probing also found the self-harm gap, which led to the safety guardrail.
 
 **Suggestion I changed/scoped down:** The AI's first plan was an LLM-based RAG: retrieve context, then have Claude generate and explain recommendations through the Anthropic API. I did not adopt that as written. It needs an API key, costs money per query, and gives non-deterministic output, which makes my reliability claims hard to verify and makes the project hard for an employer to reproduce. We built a deterministic offline design first (TF-IDF retrieval plus the original rule-based scorer). I later proposed using a free local Ollama model for the generation step, and we added it as an optional `--llm` mode where the model only writes explanations, never ranks, behind a grounding guardrail and a template fallback. I gave up determinism in that mode (the wording varies between runs) in exchange for a real generation step.
 
-**Where AI was wrong or needed checking:** The first generated knowledge-base file had empty text for all ten situation entries because of a bug in its generating script. I caught it by checking the output, and it was fixed before anything depended on it.
+**Where AI was wrong or needed checking:**
+- The first generated knowledge-base file had empty text for all ten situation entries because of a bug in its generating script. Checking the output caught it before anything depended on it.
+- The agent's first recovery tool (dropping unknown words) changed nothing, because the retriever already ignored them. Running real queries showed this, and it was replaced with spelling correction.
+- The first song-retrieval threshold pulled an unrelated song into a plain study query. Re-running earlier queries after the change caught it.
+
+## Baseline vs. Specialized Output (few-shot concise style)
+
+The optional Ollama explanation step (`--llm`) can be specialized with `--style concise`: a style rule plus three few-shot examples (invented songs) requiring one sentence of at most 18 words that states the energy level. This is prompt-level specialization, not fine-tuning. `python -m src.style_eval` ran both prompts on the same 5 queries x top 3 songs with `llama3.1:8b` (temperature 0, seed 7). Full table: [style_comparison.md](style_comparison.md).
+
+| Metric | Baseline (default prompt) | Specialized (few-shot concise) |
+|---|---|---|
+| Explanations measured | 15 | 15 |
+| Average words | 28.3 | 11.4 |
+| Exactly one sentence | 80% | 100% |
+| At most 18 words | 0% | 100% |
+| States low/medium/high energy | 53% | 100% |
+| No filler phrases | 13% | 100% |
+
+Same song, same request (`"sad rainy heartbreak"`, Lonesome Highway):
+- **Baseline:** "This song fits the request because it matches the mood of sadness and heartbreak, and its blues genre is a good fit for a rainy day. The low energy level also complements the feeling of being down and lonely." (39 words, 2 sentences)
+- **Specialized:** "Low energy blues that captures the sadness and heartbreak of a rainy day." (13 words, 1 sentence)
+
+**Caveat:** The rules measured are the ones the specialized prompt asks for, so this shows the model follows the style reliably on this small test set, not that shorter explanations are better. LLM wording varies between runs, so exact percentages can shift.
+
+## Future Improvements
+
+- **Semantic retrieval.** Replace word-matching TF-IDF with embeddings (an Ollama embedding model such as `nomic-embed-text` is available locally), so synonyms and paraphrases match without hand-written entries.
+- **Larger, more diverse data.** The 18-song catalog and 37-entry knowledge base are tiny and reflect my assumptions. A larger catalog with real listening features would reduce the genre-over-mood bias.
+- **Better safety classification.** Replace the English keyword list with a proper classifier and multilingual coverage.
+- **Stronger LLM grounding.** Verify claims about the recommended song itself against its catalog fields, not only mentions of other songs, and consider multi-model agreement for explanations.
+- **User feedback loop.** Let users mark picks good or bad and use that to tune weights, which would also give real human-evaluation data.
+

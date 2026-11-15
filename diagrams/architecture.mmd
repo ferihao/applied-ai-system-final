@@ -22,7 +22,7 @@ flowchart TD
     SONGS --> FB
     SC --> G2[Output guardrail<br/>every song must exist in catalog]
     G2 --> EXP[Explanation builder<br/>score reasons + cited sources]
-    EXP -. optional --llm .-> LLM[Ollama LLM<br/>writes explanation from retrieved context]
+    EXP -. optional --llm .-> LLM[Ollama LLM<br/>writes explanation from retrieved context<br/>--style default or concise few-shot]
     LLM --> G3[Grounding guardrail<br/>no other catalog songs, length cap]
     G3 -- rejected or Ollama down --> EXP
     G3 -- accepted --> OUT
@@ -41,7 +41,8 @@ flowchart TD
     UT[pytest tests/] -. verifies .-> RET
     UT -. verifies .-> G1
     UT -. verifies .-> SC
-    OUT --> AG
+    OUT --> CHK[Agent check<br/>top pick must fit the inferred profile]
+    CHK --> AG
     AG -. traces .-> TR[(docs/ai_interactions.md<br/>logs/agent_traces.jsonl)]
     OUT --> H{{Human review<br/>read results and eval report}}
     REP --> H
